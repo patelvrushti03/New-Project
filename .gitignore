@@ -1,8 +1,7 @@
-db.sqlite3
-*.sqlite3
 world/
-__pycache__/
 .env
 db.sqlite3
 __pycache__/
 *.pyc
+media/
+productionfiles/
