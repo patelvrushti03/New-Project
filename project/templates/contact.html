@@ -1,0 +1,32 @@
+{% extends "master.html" %}
+
+
+{% block title %}
+Contact
+{% endblock %}
+
+{% block content %}
+<section class="contact-section">
+    <h1>Contact Us</h1>
+    <div class="contact-container">
+        <!-- LEFT -->
+        <div class="contact-info">
+            <h2>Get In Touch</h2>
+            <p>Email: demo@gmail.com</p>
+            <p>Phone: +91 9876543210</p>
+            <p>Location: Ahmedabad, Gujarat</p>
+        </div>
+        <!-- RIGHT -->
+        <div class="contact-form">
+            <form method="POST">
+                {% csrf_token %}
+                <input type="text" name="name" placeholder="Enter Your Name">
+                <input type="email" name="email" placeholder="Enter Your Email">
+                <textarea name="message" placeholder="Enter Your Message"></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

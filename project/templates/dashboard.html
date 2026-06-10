@@ -1,0 +1,25 @@
+{% extends "master.html" %}
+{% load static %}
+
+{% block title %}
+Dashboard
+{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-container">
+
+    <div class="image-container">
+        <img src="{% static 'images/backgroundimage.jpg' %}" class="main-image" alt="">
+
+        <div class="image-content">
+            <h1>Build Modern Website</h1>
+            <p> 
+                Create fast, secure, and user-friendly applications with clean design and smooth performance.
+            </p>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

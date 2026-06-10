@@ -1,0 +1,50 @@
+{% load static %}
+<html>
+
+<head>
+    <title>Login</title>
+
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+
+<body class="login-body">
+
+    <div class="login-container">
+
+        <h2>Login</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <p class="error">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+        
+        <form method="POST">
+            {% csrf_token %}
+
+            <label>Username</label>
+            <input type="text" name="username" required>
+
+            <label>Password</label>
+            <input type="password" name="password" required>
+
+            <button type="submit">Login</button>
+
+        </form>
+
+        <p>
+            New User?
+            <a href="{% url 'register' %}">
+                Register
+            </a><br><br>
+            forgot password ?
+            <a href="{% url 'forgot_password' %}">
+                Forgot Password
+            </a>
+        </p>
+
+    </div>
+
+</body>
+</html>
+

@@ -1,0 +1,49 @@
+{% load static %}
+
+<html>
+<head>
+    <title>Register</title>
+
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+
+<body class="register-body">
+
+    <div class="register-container">
+
+        <h2>Register</h2>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <label>UserName</label>
+            <input type="text" id="username" name="username" pattern="[a-zA-Z0-9]{3,16}" required>
+
+            <label>Email</label>
+            <input type="email" name="email" required>
+
+            <label>Number</label>
+            <input type="tel" id="number" name="number" placeholder="1234567890" pattern="[6-9][0-9]{9}" required>
+
+            <label>Other Number</label>
+            <input type="tel" id="other_num" name="other_num" placeholder="1234567890" pattern="[6-9][0-9]{9}" required>
+
+            <label>Date Birth</label>
+            <input type="date" name="date_birth" required>
+
+            <label>Address</label>
+            <input type="text" name="address" required>
+
+            <label>Password</label>
+            <input type="password" name="password" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}" 
+             title="Password must contain uppercase, lowercase, number and special character" required>
+
+            <button type="submit">Register</button>
+
+        </form>
+    
+
+    </div>
+
+</body>
+</html>

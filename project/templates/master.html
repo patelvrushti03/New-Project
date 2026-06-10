@@ -1,0 +1,38 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+  <title>{% block title %}{% endblock %}</title>
+</head>
+<body class="dashboard-body">
+
+    <div class="topbar">
+        <a href="/">Home</a> 
+        
+        <div class="topbar-links"> 
+             <a href="/services/">Services</a>
+             <a href="/contact/">Contact</a>
+            <a href="/profile/">Profile</a>
+            <a href="/logout/" class="logout-btn">Logout</a>
+        </div>
+    </div>
+    
+    {% block content %}
+
+    {% endblock %}
+
+    <footer class="footer">
+    <div class="footer-content">
+        <p>
+            Professional Web Application using Django
+        </p>
+        <p class="copyright">
+            © 2026 All Rights Reserved
+        </p>
+    </div>
+    </footer>
+
+</body>
+</html> 
+ 
