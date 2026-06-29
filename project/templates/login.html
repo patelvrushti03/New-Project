@@ -12,15 +12,15 @@
     <div class="login-container">
 
         <h2>Login</h2>
-
-        {% if messages %}
-            {% for message in messages %}
-                <p class="error">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
         
         <form method="POST">
             {% csrf_token %}
+
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="error">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
 
             <label>Username</label>
             <input type="text" name="username" required>
@@ -47,4 +47,3 @@
 
 </body>
 </html>
-

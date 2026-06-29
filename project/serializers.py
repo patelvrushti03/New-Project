@@ -1,30 +1,24 @@
 from rest_framework import serializers
 
-from project.models import Contact, Project
+from project.models import Contact, Users
 
 
-class ProjectModelSerializer(serializers.ModelSerializer):
-    owner = serializers.SerializerMethodField()
+class UsersModelSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Project
+        model = Users
         fields = [
             "url",
             "username",
             "email",
             "number",
-            "other_num",
-            "Date_birth",
-            "Address",
+            "other_number",
+            "date_birth",
+            "address",
             "owner",
         ]
 
     owner = serializers.ReadOnlyField(source="owner.username")
-
-    def get_owner(self, obj):
-        if obj.owner:
-            return obj.owner.username
-        return None
 
 
 class ContactSerializer(serializers.ModelSerializer):

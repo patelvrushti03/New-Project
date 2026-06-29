@@ -1,4 +1,5 @@
 import re
+from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth import (authenticate, login, logout,
@@ -10,13 +11,13 @@ from django.shortcuts import redirect, render
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.viewsets import ModelViewSet
 
-from project.models import Contact, Project
+from project.models import Contact, Users
 from project.permissions import IsOwnerOrReadOnly
-from project.serializers import ContactSerializer, ProjectModelSerializer
+from project.serializers import ContactSerializer, UsersModelSerializer
 
 
 def project_list(request):
-    projects = Project.objects.all()
+    projects = Users.objects.all()
     return render(request, "dashboard.html", {"projects": projects})
 
 
@@ -25,7 +26,7 @@ def register(request):
         username = request.POST.get("username")
         email = request.POST.get("email")
         number = request.POST.get("number")
-        other_num = request.POST.get("other_num")
+        other_number = request.POST.get("other_number")
         date_birth = request.POST.get("date_birth")
         address = request.POST.get("address")
         password = request.POST.get("password")
@@ -33,7 +34,9 @@ def register(request):
         if not re.match(r"^[a-zA-Z0-9_]{3,16}$", username):
             return HttpResponse("Invalid Username")
 
-        if not re.match(r"(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}", password):
+        if not re.match(
+            r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$", password
+        ):
             return HttpResponse("Invalid Password")
 
         if User.objects.filter(username=username).exists():
@@ -47,18 +50,18 @@ def register(request):
         )
 
         user.save()
-        Project.objects.create(
+        Users.objects.create(
             owner=user,
             username=username,
             email=email,
             number=number,
-            other_num=other_num,
+            other_number=other_number,
             date_birth=date_birth,
             address=address,
             password=password,
         )
         return redirect("login")
-    return render(request, "register.html")
+    return render(request, "register.html", {"today_date": date.today().isoformat()})
 
 
 @login_required(login_url="login")
@@ -91,45 +94,76 @@ def user_login(request):
 @login_required(login_url="login")
 def profile(request):
 
-    project = Project.objects.filter(owner=request.user).first()
-    if not project:
+    users = Users.objects.filter(owner=request.user).first()
+    if not users:
         return render(request, "profile.html", {"error": "Profile not found"})
 
-    if project.owner == request.user:
+    if users.owner == request.user:
 
         if request.method == "POST":
-            project.username = request.POST.get("username")
-            project.number = request.POST.get("number")
-            project.other_num = request.POST.get("other_num")
-            project.date_birth = request.POST.get("date_birth")
-            project.address = request.POST.get("address")
+            users.username = request.POST.get("username")
+            users.number = request.POST.get("number")
+            users.other_number = request.POST.get("other_number")
+            users.date_birth = request.POST.get("date_birth")
+            users.address = request.POST.get("address")
 
             old_password = request.POST.get("old_password")
             new_password = request.POST.get("new_password")
             confirm_password = request.POST.get("confirm_password")
 
-            if new_password:
+            if request.FILES.get("profile_image"):
+                users.profile_image = request.FILES.get("profile_image")
+
+            if not re.match(r"^[a-zA-Z0-9_]{3,16}$", users.username):
+                messages.error(request, "Invalid Username")
+                return redirect("profile")
+
+            if old_password or new_password or confirm_password:
+                if not old_password:
+                    messages.error(request, "Please enter old password")
+                    return redirect("profile")
+                if not new_password:
+                    messages.error(request, "Please enter new password")
+                    return redirect("profile")
+                if not confirm_password:
+                    messages.error(request, "Please enter confirm password")
+                    return redirect("profile")
                 if not request.user.check_password(old_password):
-                    return HttpResponse("old password is incorrect")
+                    messages.error(request, "old password is incorrect")
+                    return redirect("profile")
+                if new_password == old_password:
+                    messages.error(request, "new password do not change")
+                    return redirect("profile")
                 if new_password != confirm_password:
-                    return HttpResponse("new password do not change")
-                if not re.match(r"(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}", new_password):
-                    return HttpResponse("Invalid Password")
+                    messages.error(
+                        request, "new password do not match confirm password"
+                    )
+                    return redirect("profile")
+
+                if not re.match(
+                    r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$",
+                    new_password,
+                ):
+                    messages.error(
+                        request,
+                        "Password must contain uppercase, lowercase, number and special character",
+                    )
+                    return redirect("profile")
+
                 request.user.set_password(new_password)
                 request.user.save()
                 update_session_auth_hash(request, request.user)
+                messages.success(request, "Password changed successfully")
 
-            if request.FILES.get("profile_image"):
-                project.profile_image = request.FILES.get("profile_image")
-
-            if not re.match(r"^[a-zA-Z0-9]{3,16}$", project.username):
-                return HttpResponse("Invalid Username")
-
-            project.save()
+            users.save()
 
             return redirect("profile")
 
-    return render(request, "profile.html", {"project": project})
+    return render(
+        request,
+        "profile.html",
+        {"users": users, "today_date": date.today().isoformat()},
+    )
 
 
 def logoutpage(request):
@@ -163,7 +197,18 @@ def forgot_password(request):
         try:
             user = User.objects.get(email=email)
             if new_password != confirm_password:
-                return HttpResponse("new password do no match")
+                messages.error(request, "new password do no match confirm password")
+                return redirect("forgot_password")
+
+            if not re.match(
+                r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$", new_password
+            ):
+                messages.error(
+                    request,
+                    "Password must contain uppercase, lowercase, number and special character",
+                )
+                return redirect("forgot_password")
+
             user.set_password(new_password)
             user.save()
             return redirect("login")
@@ -173,12 +218,9 @@ def forgot_password(request):
 
 
 class ProjectModelViewSet(ModelViewSet):
-    queryset = Project.objects.all()
-    serializer_class = ProjectModelSerializer
+    queryset = Users.objects.all()
+    serializer_class = UsersModelSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
 
 
 class ContactModelViewSet(ModelViewSet):
