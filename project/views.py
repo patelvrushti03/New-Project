@@ -11,21 +11,17 @@ from django.shortcuts import redirect, render
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.viewsets import ModelViewSet
 
-from project.models import Contact, Users
+from project.models import ContactInfo, ContactMessage, UserProfile
 from project.permissions import IsOwnerOrReadOnly
 from project.serializers import ContactSerializer, UsersModelSerializer
 
 
-def project_list(request):
-    projects = Users.objects.all()
-    return render(request, "dashboard.html", {"projects": projects})
-
-
 def register(request):
+    """Handle user registration, validation, and profile creation."""
     if request.method == "POST":
         username = request.POST.get("username")
         email = request.POST.get("email")
-        number = request.POST.get("number")
+        mobile_number = request.POST.get("mobile_number")
         other_number = request.POST.get("other_number")
         date_birth = request.POST.get("date_birth")
         address = request.POST.get("address")
@@ -50,11 +46,11 @@ def register(request):
         )
 
         user.save()
-        Users.objects.create(
+        UserProfile.objects.create(
             owner=user,
             username=username,
             email=email,
-            number=number,
+            mobile_number=mobile_number,
             other_number=other_number,
             date_birth=date_birth,
             address=address,
@@ -64,13 +60,8 @@ def register(request):
     return render(request, "register.html", {"today_date": date.today().isoformat()})
 
 
-@login_required(login_url="login")
-def dashboard(request):
-    projects = request.session.get("username")
-    return render(request, "dashboard.html", {"project": projects})
-
-
 def user_login(request):
+    """Check username and password. If correct, log the user in and redirect to the dashboard page."""
     if request.user.is_authenticated:
         return redirect("dashboard")
 
@@ -82,7 +73,6 @@ def user_login(request):
 
         if user is not None:
             login(request, user)
-            request.session["username"] = username
             return redirect("dashboard")
         else:
             messages.error(request, "Invalid username or password")
@@ -92,9 +82,17 @@ def user_login(request):
 
 
 @login_required(login_url="login")
-def profile(request):
+def dashboard(request):
+    """Display dashboard page for logged-in user."""
+    projects = request.session.get("username")
+    return render(request, "dashboard.html", {"project": projects})
 
-    users = Users.objects.filter(owner=request.user).first()
+
+@login_required(login_url="login")
+def profile(request):
+    """Display and update user profile including password change."""
+    users = UserProfile.objects.filter(owner=request.user).first()
+
     if not users:
         return render(request, "profile.html", {"error": "Profile not found"})
 
@@ -102,7 +100,7 @@ def profile(request):
 
         if request.method == "POST":
             users.username = request.POST.get("username")
-            users.number = request.POST.get("number")
+            users.mobile_number = request.POST.get("mobile_number")
             users.other_number = request.POST.get("other_number")
             users.date_birth = request.POST.get("date_birth")
             users.address = request.POST.get("address")
@@ -167,29 +165,39 @@ def profile(request):
 
 
 def logoutpage(request):
+    """Logout current user and redirect to login page."""
     logout(request)
     return render(request, "login.html")
 
 
 def services(request):
+    """Render services page."""
     return render(request, "services.html")
 
 
 def contact(request):
+    """Handle contact form submission and display contact info."""
+    contact_info = ContactInfo.objects.first()
+
     if request.method == "POST":
         name = request.POST.get("name")
         email = request.POST.get("email")
         message = request.POST.get("message")
 
-        Contact.objects.create(
+        ContactMessage.objects.create(
             name=name,
             email=email,
             message=message,
         )
-    return render(request, "contact.html")
+    return render(
+        request,
+        "contact.html",
+        {"contact_info": contact_info},
+    )
 
 
 def forgot_password(request):
+    """Reset user password using email verification."""
     if request.method == "POST":
         email = request.POST.get("email")
         new_password = request.POST.get("new_password")
@@ -218,12 +226,15 @@ def forgot_password(request):
 
 
 class ProjectModelViewSet(ModelViewSet):
-    queryset = Users.objects.all()
+    """API ViewSet for performing CRUD operations on UserProfile."""
+
+    queryset = UserProfile.objects.all()
     serializer_class = UsersModelSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
 
 class ContactModelViewSet(ModelViewSet):
+    """API ViewSet for handling ContactMessage CRUD operations."""
 
-    queryset = Contact.objects.all()
+    queryset = ContactMessage.objects.all()
     serializer_class = ContactSerializer

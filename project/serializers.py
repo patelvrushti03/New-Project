@@ -1,17 +1,17 @@
 from rest_framework import serializers
 
-from project.models import Contact, Users
+from project.models import ContactMessage, UserProfile
 
 
 class UsersModelSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Users
+        model = UserProfile
         fields = [
             "url",
             "username",
             "email",
-            "number",
+            "mobile_number",
             "other_number",
             "date_birth",
             "address",
@@ -23,7 +23,7 @@ class UsersModelSerializer(serializers.ModelSerializer):
 
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Contact
+        model = ContactMessage
         fields = [
             "name",
             "email",
