@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import date
 
@@ -6,7 +7,7 @@ from django.contrib.auth import (authenticate, login, logout,
                                  update_session_auth_hash)
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.viewsets import ModelViewSet
@@ -15,9 +16,12 @@ from project.models import ContactInfo, ContactMessage, UserProfile
 from project.permissions import IsOwnerOrReadOnly
 from project.serializers import ContactSerializer, UsersModelSerializer
 
+logger = logging.getLogger(__name__)
 
-def register(request):
+
+def register(request: HttpRequest) -> HttpResponse:
     """Handle user registration, validation, and profile creation."""
+    logger.info("Registration request received")
     if request.method == "POST":
         username = request.POST.get("username")
         email = request.POST.get("email")
@@ -28,15 +32,17 @@ def register(request):
         password = request.POST.get("password")
 
         if not re.match(r"^[a-zA-Z0-9_]{3,16}$", username):
+            logger.warning(f"Invalid username format: {username}")
             return HttpResponse("Invalid Username")
 
         if not re.match(
             r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$", password
         ):
+            logger.warning(f"Invalid password format for username: {username}")
             return HttpResponse("Invalid Password")
 
         if User.objects.filter(username=username).exists():
-
+            logger.warning(f"Username already exists: {username}")
             return render(
                 request, "register.html", {"error": "Username already exists"}
             )
@@ -54,14 +60,16 @@ def register(request):
             other_number=other_number,
             date_birth=date_birth,
             address=address,
-            password=password,
         )
+        logger.info(f"User registered successfully: {username}")
+
         return redirect("login")
     return render(request, "register.html", {"today_date": date.today().isoformat()})
 
 
-def user_login(request):
+def user_login(request: HttpRequest) -> HttpResponse:
     """Check username and password. If correct, log the user in and redirect to the dashboard page."""
+    logger.info("Login page accessed")
     if request.user.is_authenticated:
         return redirect("dashboard")
 
@@ -69,12 +77,15 @@ def user_login(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
 
+        logger.info(f"Login attempt for username: {username}")
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
             login(request, user)
+            logger.info(f"User logged in successfully: {username}")
             return redirect("dashboard")
         else:
+            logger.warning(f"Invalid login attempt: {username}")
             messages.error(request, "Invalid username or password")
             return redirect("login")
 
@@ -82,18 +93,19 @@ def user_login(request):
 
 
 @login_required(login_url="login")
-def dashboard(request):
+def dashboard(request: HttpRequest) -> HttpResponse:
     """Display dashboard page for logged-in user."""
-    projects = request.session.get("username")
-    return render(request, "dashboard.html", {"project": projects})
+    logger.info(f"Dashboard opened by {request.user.username}")
+    return render(request, "dashboard.html")
 
 
 @login_required(login_url="login")
-def profile(request):
+def profile(request: HttpRequest) -> HttpResponse:
     """Display and update user profile including password change."""
     users = UserProfile.objects.filter(owner=request.user).first()
 
     if not users:
+        logger.warning(f"Profile not found for {request.user.username}")
         return render(request, "profile.html", {"error": "Profile not found"})
 
     if users.owner == request.user:
@@ -150,9 +162,13 @@ def profile(request):
 
                 request.user.set_password(new_password)
                 request.user.save()
+                logger.info(
+                    f"Password changed successfully for {request.user.username}"
+                )
                 update_session_auth_hash(request, request.user)
                 messages.success(request, "Password changed successfully")
 
+            logger.info(f"Profile updated by {request.user.username}")
             users.save()
 
             return redirect("profile")
@@ -164,18 +180,19 @@ def profile(request):
     )
 
 
-def logoutpage(request):
+def logoutpage(request: HttpRequest) -> HttpResponse:
     """Logout current user and redirect to login page."""
+    logger.info(f"User logged out: {request.user.username}")
     logout(request)
     return render(request, "login.html")
 
 
-def services(request):
+def services(request: HttpRequest) -> HttpResponse:
     """Render services page."""
     return render(request, "services.html")
 
 
-def contact(request):
+def contact(request: HttpRequest) -> HttpResponse:
     """Handle contact form submission and display contact info."""
     contact_info = ContactInfo.objects.first()
 
@@ -189,6 +206,7 @@ def contact(request):
             email=email,
             message=message,
         )
+    logger.info(f"Contact form submitted by {email}")
     return render(
         request,
         "contact.html",
@@ -196,8 +214,9 @@ def contact(request):
     )
 
 
-def forgot_password(request):
+def forgot_password(request: HttpRequest) -> HttpResponse:
     """Reset user password using email verification."""
+    logger.info("Password reset request received")
     if request.method == "POST":
         email = request.POST.get("email")
         new_password = request.POST.get("new_password")
@@ -219,8 +238,10 @@ def forgot_password(request):
 
             user.set_password(new_password)
             user.save()
+            logger.info(f"Password reset successful for {email}")
             return redirect("login")
         except User.DoesNotExist:
+            logger.warning(f"Password reset failed. Email not found: {email}")
             return render(request, "forgot_password.html", {"error": "Invalid Email"})
     return render(request, "forgot_password.html")
 
