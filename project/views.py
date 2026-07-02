@@ -184,7 +184,11 @@ def logoutpage(request: HttpRequest) -> HttpResponse:
     """Logout current user and redirect to login page."""
     logger.info(f"User logged out: {request.user.username}")
     logout(request)
-    return render(request, "login.html")
+    messages.error(
+        request,
+        "Logout successfully!",
+    )
+    return redirect("login")
 
 
 def services(request: HttpRequest) -> HttpResponse:
@@ -206,7 +210,7 @@ def contact(request: HttpRequest) -> HttpResponse:
             email=email,
             message=message,
         )
-    logger.info(f"Contact form submitted by {email}")
+        logger.info(f"Contact form submitted by {email}")
     return render(
         request,
         "contact.html",
