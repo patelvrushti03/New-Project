@@ -61,7 +61,7 @@ class ContactMessage(models.Model):
 
     Fields:
         name (CharField): Name of the sender.
-        email (CharField): Email address of sender.
+        email (EmailField): Email address of sender.
         message (TextField): Message submitted by the sender.
     """
 
