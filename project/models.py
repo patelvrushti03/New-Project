@@ -11,7 +11,7 @@ class UserProfile(models.Model):
         username (CharField): Username of the user.
         email (EmailField): Email address of the user.
         mobile_number (CharField): Primary mobile number.
-        other_number (CharField): Alternate contact number.
+        other_mobile_number (CharField): Alternate contact number.
         date_birth (DateField): User's date of birth.
         address (TextField): Full address of the user.
         password (CharField): User password (should be handled securely).
@@ -22,7 +22,7 @@ class UserProfile(models.Model):
     username = models.CharField(max_length=20, null=True)
     email = models.EmailField(max_length=50, null=True)
     mobile_number = models.CharField(max_length=15, null=True, blank=True)
-    other_number = models.CharField(max_length=15, null=True, blank=True)
+    other_mobile_number = models.CharField(max_length=15, null=True, blank=True)
     date_birth = models.DateField(null=True, blank=True)
     address = models.TextField(null=True)
     password = models.CharField(max_length=20, null=True)
@@ -63,7 +63,7 @@ class ContactMessage(models.Model):
     Fields:
         name (CharField): Name of the sender.
         email (CharField): Email address of sender.
-        message (TextField): Message content sent by user.
+        message (TextField): Message submitted by the sender.
     """
 
     name = models.CharField(max_length=20, null=True)

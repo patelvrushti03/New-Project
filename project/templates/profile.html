@@ -14,7 +14,7 @@
         <div class="profile-image">
 
             {% if users.profile_image %}
-                <img src="{{ users.profile_image.url }}" alt="Profile">
+                <img src="{{ user_profile.profile_image.url }}" alt="Profile">
             {% else %}
                 <img src="/media/default.png" alt="Profile">
             {% endif %}
@@ -34,24 +34,26 @@
         {% endif %}
 
         <label>Username</label>
-        <input type="text" name="username" value="{{ users.username }}">
+        <input type="text" name="username" value="{{ user_profile.username }}">
 
         <label>Email</label>
-        <input type="text" name="email" value="{{ users.email }}" disabled>
+        <input type="text" name="email" value="{{ user_profile.email }}" disabled>
 
         <label>Mobile Number</label>
-        <input type="text" name="mobile_number" value="{{ users.mobile_number }}" placeholder="1234567890" pattern="[6-9][0-9]{9}"
-        title="Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9">
+        <input type="text" name="mobile_number" value="{{ user_profile.mobile_number }}" placeholder="+1234567890" 
+        pattern="^+?[0-9]{6,15}" 
+        title="Please enter a valid phone number with 6 to 15 digits">
 
         <label>Other Number</label>
-        <input type="text" name="other_number" value="{{ users.other_number }}" placeholder="1234567890" pattern="[6-9][0-9]{9}"
-        title="Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9">
+        <input type="text" name="other_mobile_number" value="{{ user_profile.other_mobile_number }}" placeholder="+1234567890"
+        pattern="\+?[0-9]{7,15}"
+        title="Please enter a valid phone number with 6 to 15 digits.">
 
         <label>Date Of Birth</label>
-        <input type="date" name="date_birth" max="{{ today_date }}" value="{{ users.date_birth|date:'Y-m-d' }}">
+        <input type="date" name="date_birth" max="{{ today_date }}" value="{{ user_profile.date_birth|date:'Y-m-d' }}">
 
         <label>Address</label>
-        <input type="text" name="address" value="{{ users.address }}">
+        <input type="text" name="address" value="{{ user_profile.address }}">
 
         <label>Old Password</label>
         <input type="password" name="old_password">

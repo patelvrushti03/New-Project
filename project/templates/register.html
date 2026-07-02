@@ -28,12 +28,15 @@
             <input type="email" name="email" required>
 
             <label>Mobile Number</label>
-            <input type="tel" id="mobile_number" name="mobile_number" placeholder="1234567890" pattern="[6-9][0-9]{9}" 
-            title="Please enter a valid 10-digit mobile mobile_number starting with 6, 7, 8, or 9" required>
+            <input type="tel" id="mobile_number" name="mobile_number" placeholder="+1234567890"
+            pattern="\+?[0-9]{6,15}"
+            title="Please enter a valid phone number with 6 to 15 digits." required>
 
-            <label>Other Number</label>
-            <input type="tel" id="other_number" name="other_number" placeholder="1234567890" pattern="[6-9][0-9]{9}"
-            title="Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9">
+            <label>Other Mobile Number</label>
+            <input type="tel" id="other_mobile_number" name="other_mobile_number" placeholder="+1234567890"
+            pattern="\+?[0-9]{6,15}"
+            title="Please enter a valid phone number with 6 to 15 digits.">
+            
 
             <label>Date Birth</label>
             <input type="date" name="date_birth" max="{{ today_date }}" required>

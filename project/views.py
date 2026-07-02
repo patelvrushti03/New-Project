@@ -3,8 +3,7 @@ import re
 from datetime import date
 
 from django.contrib import messages
-from django.contrib.auth import (authenticate, login, logout,
-                                 update_session_auth_hash)
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse
@@ -26,20 +25,40 @@ def register(request: HttpRequest) -> HttpResponse:
         username = request.POST.get("username")
         email = request.POST.get("email")
         mobile_number = request.POST.get("mobile_number")
-        other_number = request.POST.get("other_number")
+        other_mobile_number = request.POST.get("other_mobile_number")
         date_birth = request.POST.get("date_birth")
         address = request.POST.get("address")
         password = request.POST.get("password")
 
         if not re.match(r"^[a-zA-Z0-9_]{3,16}$", username):
             logger.warning(f"Invalid username format: {username}")
-            return HttpResponse("Invalid Username")
+            messages.error(
+                request,
+                "Username must be 3 to 16 characters long and contain only letters, numbers, and underscores.",
+            )
+            return redirect("register")
+
+        if not re.match(r"^\+?[0-9]{6,15}$", mobile_number):
+            logger.warning(f"Invalid mobile number for username: {username}")
+            messages.error(request, "Please enter a valid phone number.")
+            return redirect("register")
+
+        if other_mobile_number and not re.match(
+            r"^\+?[0-9]{6,15}$", other_mobile_number
+        ):
+            logger.warning(f"Invalid mobile number for username: {username}")
+            messages.error(request, "Please enter a valid phone number.")
+            return redirect("register")
 
         if not re.match(
             r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$", password
         ):
             logger.warning(f"Invalid password format for username: {username}")
-            return HttpResponse("Invalid Password")
+            messages.error(
+                request,
+                "Password must contain an uppercase letter, lowercase letter, number, and special character.",
+            )
+            return redirect("register")
 
         if User.objects.filter(username=username).exists():
             logger.warning(f"Username already exists: {username}")
@@ -57,7 +76,7 @@ def register(request: HttpRequest) -> HttpResponse:
             username=username,
             email=email,
             mobile_number=mobile_number,
-            other_number=other_number,
+            other_mobile_number=other_mobile_number,
             date_birth=date_birth,
             address=address,
         )
@@ -102,81 +121,86 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="login")
 def profile(request: HttpRequest) -> HttpResponse:
     """Display and update user profile including password change."""
-    users = UserProfile.objects.filter(owner=request.user).first()
+    user_profile = UserProfile.objects.filter(owner=request.user).first()
 
-    if not users:
+    if not user_profile:
         logger.warning(f"Profile not found for {request.user.username}")
         return render(request, "profile.html", {"error": "Profile not found"})
 
-    if users.owner == request.user:
+    if request.method == "POST":
+        user_profile.username = request.POST.get("username")
+        user_profile.mobile_number = request.POST.get("mobile_number")
+        user_profile.other_mobile_number = request.POST.get("other_mobile_number")
+        user_profile.date_birth = request.POST.get("date_birth")
+        user_profile.address = request.POST.get("address")
+        old_password = request.POST.get("old_password")
+        new_password = request.POST.get("new_password")
+        confirm_password = request.POST.get("confirm_password")
 
-        if request.method == "POST":
-            users.username = request.POST.get("username")
-            users.mobile_number = request.POST.get("mobile_number")
-            users.other_number = request.POST.get("other_number")
-            users.date_birth = request.POST.get("date_birth")
-            users.address = request.POST.get("address")
+        if request.FILES.get("profile_image"):
+            user_profile.profile_image = request.FILES.get("profile_image")
 
-            old_password = request.POST.get("old_password")
-            new_password = request.POST.get("new_password")
-            confirm_password = request.POST.get("confirm_password")
-
-            if request.FILES.get("profile_image"):
-                users.profile_image = request.FILES.get("profile_image")
-
-            if not re.match(r"^[a-zA-Z0-9_]{3,16}$", users.username):
-                messages.error(request, "Invalid Username")
-                return redirect("profile")
-
-            if old_password or new_password or confirm_password:
-                if not old_password:
-                    messages.error(request, "Please enter old password")
-                    return redirect("profile")
-                if not new_password:
-                    messages.error(request, "Please enter new password")
-                    return redirect("profile")
-                if not confirm_password:
-                    messages.error(request, "Please enter confirm password")
-                    return redirect("profile")
-                if not request.user.check_password(old_password):
-                    messages.error(request, "old password is incorrect")
-                    return redirect("profile")
-                if new_password == old_password:
-                    messages.error(request, "new password do not change")
-                    return redirect("profile")
-                if new_password != confirm_password:
-                    messages.error(
-                        request, "new password do not match confirm password"
-                    )
-                    return redirect("profile")
-
-                if not re.match(
-                    r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$",
-                    new_password,
-                ):
-                    messages.error(
-                        request,
-                        "Password must contain uppercase, lowercase, number and special character",
-                    )
-                    return redirect("profile")
-
-                request.user.set_password(new_password)
-                request.user.save()
-                logger.info(
-                    f"Password changed successfully for {request.user.username}"
-                )
-                update_session_auth_hash(request, request.user)
-                messages.success(request, "Password changed successfully")
-
-            logger.info(f"Profile updated by {request.user.username}")
-            users.save()
-
+        if not re.match(r"^[a-zA-Z0-9_]{3,16}$", user_profile.username):
+            messages.error(request, "Invalid Username")
             return redirect("profile")
+
+        if not re.match(r"^\+?[0-9]{6,15}$", user_profile.mobile_number):
+            logger.warning(
+                f"Invalid mobile number for username: {user_profile.username}"
+            )
+            messages.error(request, "Please enter a valid phone number.")
+            return redirect("profile")
+
+        if user_profile.other_mobile_number and not re.match(
+            r"^\+?[0-9]{6,15}$", user_profile.other_mobile_number
+        ):
+            logger.warning(
+                f"Invalid mobile number for username: {user_profile.username}"
+            )
+            messages.error(request, "Please enter a valid phone number.")
+            return redirect("profile")
+
+        if old_password or new_password or confirm_password:
+            if not old_password:
+                messages.error(request, "Please enter old password")
+                return redirect("profile")
+            if not new_password:
+                messages.error(request, "Please enter new password")
+                return redirect("profile")
+            if not confirm_password:
+                messages.error(request, "Please enter confirm password")
+                return redirect("profile")
+            if not request.user.check_password(old_password):
+                messages.error(request, "old password is incorrect")
+                return redirect("profile")
+            if new_password == old_password:
+                messages.error(request, "new password do not change")
+                return redirect("profile")
+            if new_password != confirm_password:
+                messages.error(request, "new password do not match confirm password")
+                return redirect("profile")
+            if not re.match(
+                r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$",
+                new_password,
+            ):
+                messages.error(
+                    request,
+                    "Password must contain uppercase, lowercase, number and special character",
+                )
+                return redirect("profile")
+            request.user.set_password(new_password)
+            request.user.save()
+            logger.info(f"Password changed successfully for {request.user.username}")
+            update_session_auth_hash(request, request.user)
+            messages.success(request, "Password changed successfully")
+        logger.info(f"Profile updated by {request.user.username}")
+        user_profile.save()
+        return redirect("profile")
 
     return render(
         request,
         "profile.html",
-        {"users": users, "today_date": date.today().isoformat()},
+        {"user_profile": user_profile, "today_date": date.today().isoformat()},
     )
 
 
