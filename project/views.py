@@ -3,7 +3,8 @@ import re
 from datetime import date
 
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth import (authenticate, login, logout,
+                                 update_session_auth_hash)
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import HttpRequest, HttpResponse
@@ -31,29 +32,34 @@ def register(request: HttpRequest) -> HttpResponse:
         password = request.POST.get("password")
 
         if not re.match(r"^[a-zA-Z0-9_]{3,16}$", username):
-            logger.warning(f"Invalid username format: {username}")
+            logger.warning("Invalid username format: %s", username)
             messages.error(
                 request,
                 "Username must be 3 to 16 characters long and contain only letters, numbers, and underscores.",
             )
             return redirect("register")
 
+        if User.objects.filter(email=email).exists():
+            logger.warning("Registration failed. Email already exists: %s", email)
+            messages.error(request, "Email already exists.")
+            return redirect("register")
+
         if not re.match(r"^\+?[0-9]{6,15}$", mobile_number):
-            logger.warning(f"Invalid mobile number for username: {username}")
+            logger.warning("Invalid mobile number for username: %s", username)
             messages.error(request, "Please enter a valid phone number.")
             return redirect("register")
 
         if other_mobile_number and not re.match(
             r"^\+?[0-9]{6,15}$", other_mobile_number
         ):
-            logger.warning(f"Invalid mobile number for username: {username}")
+            logger.warning("Invalid mobile number for username: %s", username)
             messages.error(request, "Please enter a valid phone number.")
             return redirect("register")
 
         if not re.match(
             r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$", password
         ):
-            logger.warning(f"Invalid password format for username: {username}")
+            logger.warning("Invalid password format for username: %s", username)
             messages.error(
                 request,
                 "Password must contain an uppercase letter, lowercase letter, number, and special character.",
@@ -61,7 +67,7 @@ def register(request: HttpRequest) -> HttpResponse:
             return redirect("register")
 
         if User.objects.filter(username=username).exists():
-            logger.warning(f"Username already exists: {username}")
+            logger.warning("Username already exists: %s", username)
             return render(
                 request, "register.html", {"error": "Username already exists"}
             )
@@ -80,7 +86,7 @@ def register(request: HttpRequest) -> HttpResponse:
             date_birth=date_birth,
             address=address,
         )
-        logger.info(f"User registered successfully: {username}")
+        logger.info("User registered successfully: %s", username)
 
         return redirect("login")
     return render(request, "register.html", {"today_date": date.today().isoformat()})
@@ -96,15 +102,15 @@ def user_login(request: HttpRequest) -> HttpResponse:
         username = request.POST.get("username")
         password = request.POST.get("password")
 
-        logger.info(f"Login attempt for username: {username}")
+        logger.info("Login attempt for username: %s", username)
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
             login(request, user)
-            logger.info(f"User logged in successfully: {username}")
+            logger.info("User logged in successfully: %s", username)
             return redirect("dashboard")
         else:
-            logger.warning(f"Invalid login attempt: {username}")
+            logger.warning("Invalid login attempt: %s", username)
             messages.error(request, "Invalid username or password")
             return redirect("login")
 
@@ -114,7 +120,7 @@ def user_login(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="login")
 def dashboard(request: HttpRequest) -> HttpResponse:
     """Display dashboard page for logged-in user."""
-    logger.info(f"Dashboard opened by {request.user.username}")
+    logger.info("Dashboard opened by %s", request.user.username)
     return render(request, "dashboard.html")
 
 
@@ -124,7 +130,7 @@ def profile(request: HttpRequest) -> HttpResponse:
     user_profile = UserProfile.objects.filter(owner=request.user).first()
 
     if not user_profile:
-        logger.warning(f"Profile not found for {request.user.username}")
+        logger.warning("Profile not found for %s", request.user.username)
         return render(request, "profile.html", {"error": "Profile not found"})
 
     if request.method == "POST":
@@ -146,7 +152,7 @@ def profile(request: HttpRequest) -> HttpResponse:
 
         if not re.match(r"^\+?[0-9]{6,15}$", user_profile.mobile_number):
             logger.warning(
-                f"Invalid mobile number for username: {user_profile.username}"
+                "Invalid mobile number for username: %s", user_profile.username
             )
             messages.error(request, "Please enter a valid phone number.")
             return redirect("profile")
@@ -155,7 +161,7 @@ def profile(request: HttpRequest) -> HttpResponse:
             r"^\+?[0-9]{6,15}$", user_profile.other_mobile_number
         ):
             logger.warning(
-                f"Invalid mobile number for username: {user_profile.username}"
+                "Invalid mobile number for username: %s", user_profile.username
             )
             messages.error(request, "Please enter a valid phone number.")
             return redirect("profile")
@@ -190,10 +196,10 @@ def profile(request: HttpRequest) -> HttpResponse:
                 return redirect("profile")
             request.user.set_password(new_password)
             request.user.save()
-            logger.info(f"Password changed successfully for {request.user.username}")
+            logger.info("Password changed successfully for %s", request.user.username)
             update_session_auth_hash(request, request.user)
             messages.success(request, "Password changed successfully")
-        logger.info(f"Profile updated by {request.user.username}")
+        logger.info("Profile updated by %s", request.user.username)
         user_profile.save()
         return redirect("profile")
 
@@ -206,7 +212,7 @@ def profile(request: HttpRequest) -> HttpResponse:
 
 def logoutpage(request: HttpRequest) -> HttpResponse:
     """Logout current user and redirect to login page."""
-    logger.info(f"User logged out: {request.user.username}")
+    logger.info("User logged out: %s", request.user.username)
     logout(request)
     messages.error(
         request,
@@ -234,7 +240,7 @@ def contact(request: HttpRequest) -> HttpResponse:
             email=email,
             message=message,
         )
-        logger.info(f"Contact form submitted by {email}")
+        logger.info("Contact form submitted by %s", email)
     return render(
         request,
         "contact.html",
@@ -266,10 +272,10 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
 
             user.set_password(new_password)
             user.save()
-            logger.info(f"Password reset successful for {email}")
+            logger.info("Password reset successful for %s", email)
             return redirect("login")
         except User.DoesNotExist:
-            logger.warning(f"Password reset failed. Email not found: {email}")
+            logger.warning("Password reset failed. Email not found: %s", email)
             return render(request, "forgot_password.html", {"error": "Invalid Email"})
     return render(request, "forgot_password.html")
 

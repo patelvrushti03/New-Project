@@ -1,6 +1,5 @@
 from django.contrib.auth.models import User
 from django.db import models
-from phonenumber_field.modelfields import PhoneNumberField
 
 
 class UserProfile(models.Model):
@@ -67,7 +66,7 @@ class ContactMessage(models.Model):
     """
 
     name = models.CharField(max_length=20, null=True)
-    email = models.CharField(null=True)
+    email = models.EmailField(null=True)
     message = models.TextField(max_length=200, null=True)
 
     def __str__(self):

@@ -16,9 +16,11 @@
         <form method="POST">
             {% csrf_token %}
 
-            {% if error %}
-                <p class="error">{{ error }}</p>
-            {% endif %}
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="error">{{ message }}</p>
+                {% endfor %}
+            {% endif %}           
 
             <label>UserName</label>
             <input type="text" id="username" name="username" pattern="[a-zA-Z0-9_]{3,16}" 

@@ -12,7 +12,7 @@ class UsersModelSerializer(serializers.ModelSerializer):
             "username",
             "email",
             "mobile_number",
-            "other_number",
+            "other_mobile_number",
             "date_birth",
             "address",
             "owner",
