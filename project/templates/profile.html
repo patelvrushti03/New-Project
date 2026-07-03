@@ -41,12 +41,12 @@
 
         <label>Mobile Number</label>
         <input type="text" name="mobile_number" value="{{ user_profile.mobile_number }}" placeholder="+1234567890" 
-        pattern="^+?[0-9]{6,15}" 
+        pattern="^\+?[0-9]{6,15}$" 
         title="Please enter a valid phone number with 6 to 15 digits">
 
         <label>Other Number</label>
         <input type="text" name="other_mobile_number" value="{{ user_profile.other_mobile_number }}" placeholder="+1234567890"
-        pattern="\+?[0-9]{7,15}"
+        pattern="^\+?[0-9]{6,15}$"
         title="Please enter a valid phone number with 6 to 15 digits.">
 
         <label>Date Of Birth</label>

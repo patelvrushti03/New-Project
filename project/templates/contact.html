@@ -20,6 +20,11 @@ Contact
         <div class="contact-form">
             <form method="POST">
                 {% csrf_token %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <p class="error">{{ message }}</p>
+                    {% endfor %}
+                {% endif %}   
                 <input type="text" name="name" placeholder="Enter Your Name">
                 <input type="email" name="email" placeholder="Enter Your Email">
                 <textarea name="message" placeholder="Enter Your Message"></textarea>

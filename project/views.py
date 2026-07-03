@@ -234,6 +234,10 @@ def contact(request: HttpRequest) -> HttpResponse:
         email = request.POST.get("email")
         message = request.POST.get("message")
 
+        if not name or not email or not message:
+            messages.error(request, "All fields are required.")
+            return redirect("contact")
+
         ContactMessage.objects.create(
             name=name,
             email=email,
