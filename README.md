@@ -1,68 +1,49 @@
 # First Project
 
-A Django-based web application that provides user authentication and profile management features. This project demonstrates the fundamentals of Django, including authentication, model relationships, form handling, and CRUD operations.
+## Project Overview
 
----
+This is a Django-based web application developed to learn user authentication, profile management, and REST API development. The project allows users to register, log in, manage their profile, reset their password, submit contact messages, and securely log out.
 
 ## Features
 
 - User Registration
 - User Login
 - User Logout
-- Forgot Password
-- Change Password
+- Dashboard
 - Profile Management
+- Update Username
+- Update Mobile Number
+- Update Alternate Mobile Number
+- Update Date of Birth
+- Update Address
+- Upload Profile Image
+- Change Password
+- Forgot Password
 - Contact Form
-- Form Validation
-- Logging Support
-
----
+- Logging
+- REST API using Django REST Framework
 
 ## Tech Stack
 
 ### Backend
-- Python 
+
+- Python
 - Django
+- Django REST Framework
 
 ### Frontend
+
 - HTML
 - CSS
 
 ### Database
+
 - SQLite3
 
 ### Version Control
+
 - Git
 - GitHub
-
----
-
-## Project Structure
-
-```text
-first-project/
-│── app/
-│── first_project/
-│── templates/
-│── static/
-│── media/
-│── db.sqlite3
-│── manage.py
-│── requirements.txt
-└── README.md
-```
-
----
-
-## Prerequisites
-
-Before running the project, make sure the following are installed:
-
-- Python 3.x
-- pip
-- Git
-
----
 
 ## Project Setup
 
@@ -75,7 +56,7 @@ git clone <repository-url>
 ### 2. Navigate to the Project Directory
 
 ```bash
-cd <project-folder>
+cd first_project
 ```
 
 ### 3. Create a Virtual Environment
@@ -83,40 +64,22 @@ cd <project-folder>
 **Windows**
 
 ```bash
-python -m venv venv
+python -m venv wrold
 ```
-
-**Linux/macOS**
-
-```bash
-python3 -m venv venv
-```
-
----
 
 ### 4. Activate the Virtual Environment
 
 **Windows**
 
 ```bash
-venv\Scripts\activate
+wrold\Scripts\activate
 ```
-
-**Linux/macOS**
-
-```bash
-source venv/bin/activate
-```
-
----
 
 ### 5. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
-
----
 
 ### 6. Apply Database Migrations
 
@@ -125,17 +88,11 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
----
-
 ### 7. Create a Superuser (Optional)
 
 ```bash
 python manage.py createsuperuser
 ```
-
-Follow the prompts to create an admin account.
-
----
 
 ### 8. Run the Development Server
 
@@ -143,103 +100,109 @@ Follow the prompts to create an admin account.
 python manage.py runserver
 ```
 
----
-
 ### 9. Open the Application
 
-Visit:
+Application
 
 ```
 http://127.0.0.1:8000/
 ```
 
-Admin Panel:
+Admin Panel
 
 ```
 http://127.0.0.1:8000/admin/
 ```
 
----
 
-## Available Pages
+## Project Workflow
 
-- Home
-- Register
-- Login
-- Dashboard
+### 1. User Registration
+
+- Open the Registration page.
+- Enter the required user details.
+- The application validates the input.
+- A new Django User and User Profile are created.
+- The user is redirected to the Login page.
+
+### 2. User Login
+
+- Enter the registered username and password.
+- Django authenticates the user.
+- If the credentials are valid, the user is redirected to the Dashboard.
+- If the credentials are invalid, an error message is displayed.
+
+### 3. Dashboard
+
+After successful login, the Dashboard provides access to:
+
+- service
 - Profile
-- Change Password
-- Forgot Password
 - Contact
+- Logout
 
----
+### 4. Profile Management
 
-## Database
+From the Profile page, the user can:
 
-This project uses **SQLite3** as the default database.
+- Update Username
+- Update Mobile Number
+- Update Alternate Mobile Number
+- Update Date of Birth
+- Update Address
+- Upload Profile Image
+- Change Password
 
----
+The application validates the updated information before saving it.
+
+### 5. Forgot Password
+
+- Open the Forgot Password page.
+- Enter the registered email address.
+- Enter a new password and confirm it.
+- If validation is successful, the password is updated.
+- The user can log in using the new password.
+
+### 6. Contact Form
+
+- Open the Contact page.
+- Enter Name, Email, and Message.
+- Submit the form.
+- The message is stored in the database.
+
+### 7. REST API
+
+The project provides REST APIs for:
+
+- User Profile CRUD Operations
+- Contact Message CRUD Operations
+
+API access is protected using authentication and custom permissions.
+
+### 8. User Logout
+
+- Click the Logout button.
+- The current user session is terminated securely.
+- The user is redirected to the Login page.
+
+### 9. Admin Panel
+
+The Django Admin Panel allows administrators to:
+
+- View registered users
+- Manage user profiles
+- View contact messages
+
 
 ## Logging
 
-Logging has been configured to record application events such as:
+The application records important events such as:
 
-- User registration
-- Login attempts
-- Successful login
+- User Registration
+- Login Attempts
+- Successful Login
 - Logout
-- Password reset
-- Profile updates
-- Validation warnings
-
----
-
-## Learning Objectives
-
-This project was built to learn and practice:
-
-- Django Authentication
-- Django ORM
-- Models
-- Views
-- URL Routing
-- Templates
-- Forms
-- Model Relationships
-- Validation
-- Logging
-- Static Files
-- Git & GitHub Workflow
-
----
-
-## Contributing
-
-Contributions are welcome.
-
-1. Fork the repository
-2. Create a new branch
-
-```bash
-git checkout -b feature-name
-```
-
-3. Commit your changes
-
-```bash
-git commit -m "Add new feature"
-```
-
-4. Push the branch
-
-```bash
-git push origin feature-name
-```
-
-5. Open a Pull Request
-
----
-
-## License
-
-This project is created for learning purposes.
+- Password Reset
+- Profile Updates
+- Contact Form Submission
+- Validation Warnings

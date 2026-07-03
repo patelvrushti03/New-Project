@@ -27,8 +27,11 @@ class UserProfile(models.Model):
     password = models.CharField(max_length=20, null=True)
     profile_image = models.ImageField(upload_to="profile/", default="default.png")
 
-    owner = models.ForeignKey(
-        User, related_name="profiles", on_delete=models.CASCADE, null=True, blank=True
+    owner = models.OneToOneField(
+        User,
+        related_name="profile",
+        on_delete=models.CASCADE,
+        null=True,
     )
 
     def __str__(self):

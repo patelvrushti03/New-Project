@@ -39,11 +39,6 @@ def register(request: HttpRequest) -> HttpResponse:
             )
             return redirect("register")
 
-        if User.objects.filter(email=email).exists():
-            logger.warning("Registration failed. Email already exists: %s", email)
-            messages.error(request, "Email already exists.")
-            return redirect("register")
-
         if not re.match(r"^\+?[0-9]{6,15}$", mobile_number):
             logger.warning("Invalid mobile number for username: %s", username)
             messages.error(request, "Please enter a valid phone number.")
@@ -72,11 +67,15 @@ def register(request: HttpRequest) -> HttpResponse:
                 request, "register.html", {"error": "Username already exists"}
             )
 
+        if User.objects.filter(email=email).exists():
+            logger.warning("Registration failed. Email already exists: %s", email)
+            messages.error(request, "Email already exists.")
+            return redirect("register")
+
         user = User.objects.create_user(
             username=username, email=email, password=password
         )
 
-        user.save()
         UserProfile.objects.create(
             owner=user,
             username=username,
