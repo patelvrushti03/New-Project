@@ -1,41 +1,30 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
-class UserProfile(models.Model):
+class CustomUser(AbstractUser):
     """
-    Stores detailed user profile information linked with Django User.
+    Custom user model extending Django AbstractUser.
+    Stores detailed user information for the application.
 
     Fields:
-        username (CharField): Username of the user.
-        email (EmailField): Email address of the user.
         mobile_number (CharField): Primary mobile number.
         other_mobile_number (CharField): Alternate contact number.
         date_birth (DateField): User's date of birth.
         address (TextField): Full address of the user.
-        password (CharField): User password (should be handled securely).
         profile_image (ImageField): Profile image of user.
-        owner (ForeignKey): Reference to Django User model (owner of profile).
     """
 
-    username = models.CharField(max_length=20, null=True)
-    email = models.EmailField(max_length=50, null=True)
     mobile_number = models.CharField(max_length=15, null=True, blank=True)
     other_mobile_number = models.CharField(max_length=15, null=True, blank=True)
     date_birth = models.DateField(null=True, blank=True)
-    address = models.TextField(null=True)
-    password = models.CharField(max_length=20, null=True)
-    profile_image = models.ImageField(upload_to="profile/", default="default.png")
-
-    owner = models.OneToOneField(
-        User,
-        related_name="profile",
-        on_delete=models.CASCADE,
-        null=True,
+    address = models.TextField(null=True, blank=True)
+    profile_image = models.ImageField(
+        upload_to="profile/", default="default.png", blank=True
     )
 
     def __str__(self):
-        """Return username of the user profile."""
+        """Return username of the user."""
         return self.username
 
 

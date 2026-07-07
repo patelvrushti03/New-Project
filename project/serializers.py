@@ -1,12 +1,16 @@
+import re
+
 from rest_framework import serializers
 
-from project.models import ContactMessage, UserProfile
+from project.models import ContactMessage, CustomUser
 
 
 class UsersModelSerializer(serializers.ModelSerializer):
 
+    owner = serializers.ReadOnlyField(source="owner.username")
+
     class Meta:
-        model = UserProfile
+        model = CustomUser
         fields = [
             "url",
             "username",
@@ -18,7 +22,10 @@ class UsersModelSerializer(serializers.ModelSerializer):
             "owner",
         ]
 
-    owner = serializers.ReadOnlyField(source="owner.username")
+    def validate_username(self, value):
+        if not re.match(r"^[a-zA-Z0-9_]{3,16}$", value):
+            raise serializers.ValidationError("Invalid username format")
+        return value
 
 
 class ContactSerializer(serializers.ModelSerializer):
@@ -29,3 +36,8 @@ class ContactSerializer(serializers.ModelSerializer):
             "email",
             "message",
         ]
+
+    def validate(self, data):
+        if not data.get("name") or not data.get("email") or not data.get("message"):
+            raise serializers.ValidationError("All fields are required.")
+        return data

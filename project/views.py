@@ -1,94 +1,79 @@
+# Standard library imports
 import logging
+import random
 import re
 from datetime import date
 
+# Django imports
+from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import (authenticate, login, logout,
-                                 update_session_auth_hash)
+from django.contrib.auth import (
+    authenticate,
+    get_user_model,
+    login,
+    logout,
+    update_session_auth_hash,
+)
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
+
+# Third-party imports
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.viewsets import ModelViewSet
 
-from project.models import ContactInfo, ContactMessage, UserProfile
+# Local application imports
+from project.models import ContactInfo, ContactMessage, CustomUser
 from project.permissions import IsOwnerOrReadOnly
 from project.serializers import ContactSerializer, UsersModelSerializer
 
+from .forms import ProfileForm, RegisterForm, SetNewPasswordForm
+
+# Temporary OTP store (demo purpose)
+OTP_STORE = {}
+
+# Initialize logger for application logging.
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
 
 def register(request: HttpRequest) -> HttpResponse:
     """Handle user registration, validation, and profile creation."""
     logger.info("Registration request received")
+
     if request.method == "POST":
-        username = request.POST.get("username")
-        email = request.POST.get("email")
-        mobile_number = request.POST.get("mobile_number")
-        other_mobile_number = request.POST.get("other_mobile_number")
-        date_birth = request.POST.get("date_birth")
-        address = request.POST.get("address")
-        password = request.POST.get("password")
+        form = RegisterForm(request.POST)
 
-        if not re.match(r"^[a-zA-Z0-9_]{3,16}$", username):
-            logger.warning("Invalid username format: %s", username)
-            messages.error(
-                request,
-                "Username must be 3 to 16 characters long and contain only letters, numbers, and underscores.",
-            )
-            return redirect("register")
-
-        if not re.match(r"^\+?[0-9]{6,15}$", mobile_number):
-            logger.warning("Invalid mobile number for username: %s", username)
-            messages.error(request, "Please enter a valid phone number.")
-            return redirect("register")
-
-        if other_mobile_number and not re.match(
-            r"^\+?[0-9]{6,15}$", other_mobile_number
-        ):
-            logger.warning("Invalid mobile number for username: %s", username)
-            messages.error(request, "Please enter a valid phone number.")
-            return redirect("register")
-
-        if not re.match(
-            r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$", password
-        ):
-            logger.warning("Invalid password format for username: %s", username)
-            messages.error(
-                request,
-                "Password must contain an uppercase letter, lowercase letter, number, and special character.",
-            )
-            return redirect("register")
-
-        if User.objects.filter(username=username).exists():
-            logger.warning("Username already exists: %s", username)
-            return render(
-                request, "register.html", {"error": "Username already exists"}
+        if form.is_valid():
+            user = User.objects.create_user(
+                username=form.cleaned_data["username"],
+                email=form.cleaned_data["email"],
+                password=form.cleaned_data["password"],
+                mobile_number=form.cleaned_data["mobile_number"],
+                other_mobile_number=form.cleaned_data["other_mobile_number"],
+                date_birth=form.cleaned_data["date_birth"],
+                address=form.cleaned_data["address"],
             )
 
-        if User.objects.filter(email=email).exists():
-            logger.warning("Registration failed. Email already exists: %s", email)
-            messages.error(request, "Email already exists.")
-            return redirect("register")
+            logger.info("User registered successfully: %s", user.username)
 
-        user = User.objects.create_user(
-            username=username, email=email, password=password
-        )
+            return redirect("login")
 
-        UserProfile.objects.create(
-            owner=user,
-            username=username,
-            email=email,
-            mobile_number=mobile_number,
-            other_mobile_number=other_mobile_number,
-            date_birth=date_birth,
-            address=address,
-        )
-        logger.info("User registered successfully: %s", username)
+        logger.warning("Registration form validation failed.")
 
-        return redirect("login")
-    return render(request, "register.html", {"today_date": date.today().isoformat()})
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+
+    else:
+        form = RegisterForm()
+
+    return render(
+        request,
+        "register.html",
+        {"form": form, "today_date": date.today().isoformat()},
+    )
 
 
 def user_login(request: HttpRequest) -> HttpResponse:
@@ -126,86 +111,74 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 @login_required(login_url="login")
 def profile(request: HttpRequest) -> HttpResponse:
     """Display and update user profile including password change."""
-    user_profile = UserProfile.objects.filter(owner=request.user).first()
+    user = request.user
 
-    if not user_profile:
+    if not user:
         logger.warning("Profile not found for %s", request.user.username)
         return render(request, "profile.html", {"error": "Profile not found"})
 
     if request.method == "POST":
-        user_profile.username = request.POST.get("username")
-        user_profile.mobile_number = request.POST.get("mobile_number")
-        user_profile.other_mobile_number = request.POST.get("other_mobile_number")
-        user_profile.date_birth = request.POST.get("date_birth")
-        user_profile.address = request.POST.get("address")
-        old_password = request.POST.get("old_password")
-        new_password = request.POST.get("new_password")
-        confirm_password = request.POST.get("confirm_password")
 
-        if request.FILES.get("profile_image"):
-            user_profile.profile_image = request.FILES.get("profile_image")
+        form = ProfileForm(request.POST, user=request.user)
 
-        if not re.match(r"^[a-zA-Z0-9_]{3,16}$", user_profile.username):
-            messages.error(request, "Invalid Username")
-            return redirect("profile")
+        if form.is_valid():
 
-        if not re.match(r"^\+?[0-9]{6,15}$", user_profile.mobile_number):
-            logger.warning(
-                "Invalid mobile number for username: %s", user_profile.username
-            )
-            messages.error(request, "Please enter a valid phone number.")
-            return redirect("profile")
+            user.username = form.cleaned_data["username"]
+            user.mobile_number = form.cleaned_data["mobile_number"]
+            user.other_mobile_number = form.cleaned_data["other_mobile_number"]
+            user.date_birth = form.cleaned_data["date_birth"]
+            user.address = form.cleaned_data["address"]
 
-        if user_profile.other_mobile_number and not re.match(
-            r"^\+?[0-9]{6,15}$", user_profile.other_mobile_number
-        ):
-            logger.warning(
-                "Invalid mobile number for username: %s", user_profile.username
-            )
-            messages.error(request, "Please enter a valid phone number.")
-            return redirect("profile")
+            if request.FILES.get("profile_image"):
+                user.profile_image = request.FILES.get("profile_image")
 
-        if old_password or new_password or confirm_password:
-            if not old_password:
-                messages.error(request, "Please enter old password")
-                return redirect("profile")
-            if not new_password:
-                messages.error(request, "Please enter new password")
-                return redirect("profile")
-            if not confirm_password:
-                messages.error(request, "Please enter confirm password")
-                return redirect("profile")
-            if not request.user.check_password(old_password):
-                messages.error(request, "old password is incorrect")
-                return redirect("profile")
-            if new_password == old_password:
-                messages.error(request, "new password do not change")
-                return redirect("profile")
-            if new_password != confirm_password:
-                messages.error(request, "new password do not match confirm password")
-                return redirect("profile")
-            if not re.match(
-                r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$",
-                new_password,
-            ):
-                messages.error(
-                    request,
-                    "Password must contain uppercase, lowercase, number and special character",
+            if form.cleaned_data["new_password"]:
+                request.user.set_password(
+                    form.cleaned_data["new_password"],
                 )
-                return redirect("profile")
-            request.user.set_password(new_password)
-            request.user.save()
-            logger.info("Password changed successfully for %s", request.user.username)
-            update_session_auth_hash(request, request.user)
-            messages.success(request, "Password changed successfully")
-        logger.info("Profile updated by %s", request.user.username)
-        user_profile.save()
-        return redirect("profile")
+                request.user.save()
+
+                update_session_auth_hash(request, request.user)
+
+                logger.info(
+                    "Password changed successfully for %s", request.user.username
+                )
+
+                messages.success(request, "Password changed successfully.")
+
+            user.save()
+
+            logger.info("Profile updated by %s", request.user.username)
+
+            return redirect("profile")
+
+        logger.warning("Profile form validation failed for %s", request.user.username)
+
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+
+    else:
+
+        form = ProfileForm(
+            initial={
+                "username": user.username,
+                "mobile_number": user.mobile_number,
+                "other_mobile_number": (user.other_mobile_number),
+                "date_birth": user.date_birth,
+                "address": user.address,
+            },
+            user=request.user,
+        )
 
     return render(
         request,
         "profile.html",
-        {"user_profile": user_profile, "today_date": date.today().isoformat()},
+        {
+            "user": user,
+            "form": form,
+            "today_date": date.today().isoformat(),
+        },
     )
 
 
@@ -213,10 +186,7 @@ def logoutpage(request: HttpRequest) -> HttpResponse:
     """Logout current user and redirect to login page."""
     logger.info("User logged out: %s", request.user.username)
     logout(request)
-    messages.error(
-        request,
-        "Logout successfully!",
-    )
+    messages.error(request, "Logout successfully!")
     return redirect("login")
 
 
@@ -230,63 +200,103 @@ def contact(request: HttpRequest) -> HttpResponse:
     contact_info = ContactInfo.objects.first()
 
     if request.method == "POST":
-        name = request.POST.get("name")
-        email = request.POST.get("email")
-        message = request.POST.get("message")
+        serializer = ContactSerializer(data=request.POST)
 
-        if not name or not email or not message:
-            messages.error(request, "All fields are required.")
+        if serializer.is_valid():
+            serializer.save()
+            logger.info(
+                "Contact form submitted by %s", serializer.validated_data["email"]
+            )
             return redirect("contact")
 
-        ContactMessage.objects.create(
-            name=name,
-            email=email,
-            message=message,
-        )
-        logger.info("Contact form submitted by %s", email)
-    return render(
-        request,
-        "contact.html",
-        {"contact_info": contact_info},
-    )
+        for error in serializer.errors.values():
+            messages.error(request, error)
+
+    return render(request, "contact.html", {"contact_info": contact_info})
 
 
-def forgot_password(request: HttpRequest) -> HttpResponse:
-    """Reset user password using email verification."""
-    logger.info("Password reset request received")
-    if request.method == "POST":
+def forgot_password(request):
+
+    step = "step1"
+    form = None
+
+    # STEP 1: SEND OTP
+    if request.method == "POST" and "send_otp" in request.POST:
+
         email = request.POST.get("email")
-        new_password = request.POST.get("new_password")
-        confirm_password = request.POST.get("confirm_password")
-        try:
+
+        if not User.objects.filter(email=email).exists():
+            messages.error(request, "Invalid email")
+            step = "step1"
+
+        else:
+            otp = str(random.randint(100000, 999999))
+            OTP_STORE[email] = otp
+
+            print("OTP:", otp)
+
+            send_mail(
+                "Your OTP",
+                f"Your OTP is {otp}",
+                settings.EMAIL_HOST_USER,
+                [email],
+                fail_silently=False,
+            )
+
+            request.session["reset_email"] = email
+            step = "step2"
+
+            messages.success(request, "OTP sent successfully")
+
+    # STEP 2: VERIFY OTP
+    elif request.method == "POST" and "verify_otp" in request.POST:
+
+        email = request.session.get("reset_email")
+        otp_input = request.POST.get("otp")
+
+        if email and OTP_STORE.get(email) == otp_input:
+            step = "step3"
+            messages.success(request, "OTP verified")
+
+        else:
+            step = "step2"
+            messages.error(request, "Invalid OTP")
+
+    # STEP 3: RESET PASSWORD
+    elif request.method == "POST" and "reset_password" in request.POST:
+
+        email = request.session.get("reset_email")
+        form = SetNewPasswordForm(request.POST)
+
+        if form.is_valid():
+
+            new_password = form.cleaned_data["new_password"]
+
             user = User.objects.get(email=email)
-            if new_password != confirm_password:
-                messages.error(request, "new password do no match confirm password")
-                return redirect("forgot_password")
-
-            if not re.match(
-                r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$", new_password
-            ):
-                messages.error(
-                    request,
-                    "Password must contain uppercase, lowercase, number and special character",
-                )
-                return redirect("forgot_password")
-
             user.set_password(new_password)
             user.save()
-            logger.info("Password reset successful for %s", email)
+
+            OTP_STORE.pop(email, None)
+            request.session.pop("reset_email", None)
+
+            messages.success(request, "Password reset successful")
             return redirect("login")
-        except User.DoesNotExist:
-            logger.warning("Password reset failed. Email not found: %s", email)
-            return render(request, "forgot_password.html", {"error": "Invalid Email"})
-    return render(request, "forgot_password.html")
+
+        else:
+            messages.error(request, "Password invalid or does not match")
+            step = "step3"
+
+    # GET REQUEST (or reload step 3 form)
+    if step == "step3":
+        form = SetNewPasswordForm()
+
+    return render(request, "forgot_password.html", {"step": step, "form": form})
 
 
 class ProjectModelViewSet(ModelViewSet):
-    """API ViewSet for performing CRUD operations on UserProfile."""
+    """API ViewSet for performing CRUD operations on CustomUser."""
 
-    queryset = UserProfile.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UsersModelSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 

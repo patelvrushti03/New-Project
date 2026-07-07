@@ -11,10 +11,10 @@
         <a href="/">Home</a>
 
         <div class="topbar-links">
-            <a href="/services/">Services</a>
-            <a href="/contact/">Contact</a>
-            <a href="/profile/">Profile</a>
-            <a href="/logout/" class="logout-btn">Logout</a>
+            <a href="{% url 'services' %}">Services</a>
+            <a href="{% url 'contact' %}">Contact</a>
+            <a href="{% url 'profile' %}">Profile</a> 
+            <a href="{% url 'logout' %}">Logout</a>
         </div>
     </div>
 

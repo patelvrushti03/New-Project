@@ -1,9 +1,9 @@
 {% load static %}
 
+<!DOCTYPE html>
 <html>
 <head>
     <title>Register</title>
-
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 
@@ -20,40 +20,32 @@
                 {% for message in messages %}
                     <p class="error">{{ message }}</p>
                 {% endfor %}
-            {% endif %}           
+            {% endif %}
 
-            <label>UserName</label>
-            <input type="text" id="username" name="username" pattern="[a-zA-Z0-9_]{3,16}" 
-            title="username must be 3-16 characters long" required>
+            <label>Username</label>
+            {{ form.username }}
 
             <label>Email</label>
-            <input type="email" name="email" required>
+            {{ form.email }}
 
             <label>Mobile Number</label>
-            <input type="tel" id="mobile_number" name="mobile_number" placeholder="+1234567890"
-            pattern="\+?[0-9]{6,15}"
-            title="Please enter a valid phone number with 6 to 15 digits." required>
+            {{ form.mobile_number }}
 
             <label>Other Mobile Number</label>
-            <input type="tel" id="other_mobile_number" name="other_mobile_number" placeholder="+1234567890"
-            pattern="\+?[0-9]{6,15}"
-            title="Please enter a valid phone number with 6 to 15 digits.">
-            
+            {{ form.other_mobile_number }}
 
-            <label>Date Birth</label>
-            <input type="date" name="date_birth" max="{{ today_date }}" required>
+            <label>Date of Birth</label>
+            {{ form.date_birth }}
 
             <label>Address</label>
-            <input type="text" name="address" required>
+            {{ form.address }}
 
             <label>Password</label>
-            <input type="password" name="password" pattern="^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$" 
-             title="Password must contain uppercase, lowercase, number and special character" required>
+            {{ form.password }}
 
             <button type="submit">Register</button>
 
         </form>
-    
 
     </div>
 

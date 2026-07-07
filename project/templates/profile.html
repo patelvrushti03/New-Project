@@ -13,16 +13,15 @@
 
         <div class="profile-image">
 
-            {% if users.profile_image %}
-                <img src="{{ user_profile.profile_image.url }}" alt="Profile">
+            {% if user.profile_image %}
+                <img src="{{ user.profile_image.url }}" alt="Profile">
             {% else %}
                 <img src="/media/default.png" alt="Profile">
             {% endif %}
 
             <label for="file-input" class="edit-icon">✏️</label>
-
             <input type="file" id="file-input" name="profile_image">
-            
+
         </div>
 
         <h2>Profile</h2>
@@ -34,30 +33,26 @@
         {% endif %}
 
         <label>Username</label>
-        <input type="text" name="username" value="{{ user_profile.username }}">
+        {{ form.username }}
 
         <label>Email</label>
-        <input type="text" name="email" value="{{ user_profile.email }}" disabled>
+        <input type="text" value="{{ user.email }}" disabled>
 
         <label>Mobile Number</label>
-        <input type="text" name="mobile_number" value="{{ user_profile.mobile_number }}" placeholder="+1234567890" 
-        pattern="^\+?[0-9]{6,15}$" 
-        title="Please enter a valid phone number with 6 to 15 digits">
+        {{ form.mobile_number }}
 
         <label>Other Number</label>
-        <input type="text" name="other_mobile_number" value="{{ user_profile.other_mobile_number }}" placeholder="+1234567890"
-        pattern="^\+?[0-9]{6,15}$"
-        title="Please enter a valid phone number with 6 to 15 digits.">
+        {{ form.other_mobile_number }}
 
         <label>Date Of Birth</label>
-        <input type="date" name="date_birth" max="{{ today_date }}" value="{{ user_profile.date_birth|date:'Y-m-d' }}">
+        {{ form.date_birth }}
 
         <label>Address</label>
-        <input type="text" name="address" value="{{ user_profile.address }}">
+        {{ form.address }}
 
         <label>Old Password</label>
         <input type="password" name="old_password">
-        
+
         <label>New Password</label>
         <input type="password" name="new_password">
 
