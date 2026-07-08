@@ -2,7 +2,7 @@
 import logging
 import random
 import re
-from datetime import date
+from datetime import date, timedelta
 
 # Django imports
 from django.conf import settings
@@ -18,6 +18,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 # Third-party imports
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -164,7 +165,7 @@ def profile(request: HttpRequest) -> HttpResponse:
             initial={
                 "username": user.username,
                 "mobile_number": user.mobile_number,
-                "other_mobile_number": (user.other_mobile_number),
+                "other_mobile_number": user.other_mobile_number,
                 "date_birth": user.date_birth,
                 "address": user.address,
             },
@@ -215,54 +216,86 @@ def contact(request: HttpRequest) -> HttpResponse:
     return render(request, "contact.html", {"contact_info": contact_info})
 
 
-def forgot_password(request):
-
+def forgot_password(request: HttpRequest) -> HttpResponse:
+    """Handle the forgot password process using OTP verification."""
     step = "step1"
     form = None
 
-    # STEP 1: SEND OTP
-    if request.method == "POST" and "send_otp" in request.POST:
+    # STEP 1 : SEND / RESEND OTP
+    if request.method == "POST" and (
+        "send_otp" in request.POST or "resend_otp" in request.POST
+    ):
 
-        email = request.POST.get("email")
+        # First time email enter
+        if "send_otp" in request.POST:
+            email = request.POST.get("email")
 
-        if not User.objects.filter(email=email).exists():
-            messages.error(request, "Invalid email")
-            step = "step1"
+            if not User.objects.filter(email=email).exists():
+                messages.error(request, "Invalid email")
+                return render(request, "forgot_password.html", {"step": "step1"})
 
-        else:
-            otp = str(random.randint(100000, 999999))
-            OTP_STORE[email] = otp
-
-            print("OTP:", otp)
-
-            send_mail(
-                "Your OTP",
-                f"Your OTP is {otp}",
-                settings.EMAIL_HOST_USER,
-                [email],
-                fail_silently=False,
-            )
-
+            # Email session ma save karo
             request.session["reset_email"] = email
-            step = "step2"
 
-            messages.success(request, "OTP sent successfully")
+        # Resend OTP
+        else:
+            email = request.session.get("reset_email")
 
-    # STEP 2: VERIFY OTP
+            if not email:
+                messages.error(request, "Session expired. Please enter email again.")
+                return render(request, "forgot_password.html", {"step": "step1"})
+
+        # New OTP generate
+        otp = str(random.randint(100000, 999999))
+
+        OTP_STORE[email] = {
+            "otp": otp,
+            "expiry": timezone.now() + timedelta(seconds=30),
+        }
+
+        print("OTP:", otp)
+
+        send_mail(
+            "Your OTP",
+            f"Your OTP is {otp}",
+            settings.EMAIL_HOST_USER,
+            [email],
+            fail_silently=False,
+        )
+
+        step = "step2"
+
+        if "send_otp" in request.POST:
+            messages.success(request, "OTP sent successfully.")
+        else:
+            messages.success(request, "OTP resent successfully.")
+
+    # STEP 2 : VERIFY OTP
     elif request.method == "POST" and "verify_otp" in request.POST:
 
         email = request.session.get("reset_email")
         otp_input = request.POST.get("otp")
 
-        if email and OTP_STORE.get(email) == otp_input:
+        otp_data = OTP_STORE.get(email)
+
+        if not otp_data:
+            step = "step2"
+            messages.error(request, "OTP not found. Please resend OTP.")
+
+        elif timezone.now() > otp_data["expiry"]:
+            OTP_STORE.pop(email, None)
+            step = "step2"
+            messages.error(request, "OTP has expired. Please click Resend OTP.")
+
+        elif otp_data["otp"] == otp_input:
             step = "step3"
-            messages.success(request, "OTP verified")
+            messages.success(request, "OTP verified.")
 
         else:
             step = "step2"
-            messages.error(request, "Invalid OTP")
+            messages.error(request, "Invalid OTP.")
 
-    # STEP 3: RESET PASSWORD
+    # STEP 3 : RESET PASSWORD
     elif request.method == "POST" and "reset_password" in request.POST:
 
         email = request.session.get("reset_email")
@@ -279,14 +312,15 @@ def forgot_password(request):
             OTP_STORE.pop(email, None)
             request.session.pop("reset_email", None)
 
-            messages.success(request, "Password reset successful")
+            messages.success(request, "Password reset successful.")
             return redirect("login")
 
-        else:
-            messages.error(request, "Password invalid or does not match")
-            step = "step3"
+        step = "step3"
+        messages.error(
+            request,
+            "Password must contain an uppercase letter, lowercase letter, number, and special character.",
+        )
 
-    # GET REQUEST (or reload step 3 form)
     if step == "step3":
         form = SetNewPasswordForm()
 

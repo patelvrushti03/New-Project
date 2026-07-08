@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from project.views import OTP_STORE
 
@@ -106,6 +109,8 @@ class AuthenticationViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("test@example.com", OTP_STORE)
+        self.assertIn("otp", OTP_STORE["test@example.com"])
+        self.assertIn("expiry", OTP_STORE["test@example.com"])
 
     def test_send_otp_invalid_email(self):
         response = self.client.post(
@@ -116,7 +121,10 @@ class AuthenticationViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_verify_otp(self):
-        OTP_STORE["test@example.com"] = "123456"
+        OTP_STORE["test@example.com"] = {
+            "otp": "123456",
+            "expiry": timezone.now() + timedelta(seconds=30),
+        }
 
         session = self.client.session
         session["reset_email"] = "test@example.com"
@@ -129,7 +137,10 @@ class AuthenticationViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_reset_password(self):
-        OTP_STORE["test@example.com"] = "123456"
+        OTP_STORE["test@example.com"] = {
+            "otp": "123456",
+            "expiry": timezone.now() + timedelta(seconds=30),
+        }
 
         session = self.client.session
         session["reset_email"] = "test@example.com"

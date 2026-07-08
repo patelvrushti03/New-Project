@@ -172,12 +172,7 @@ class ForgotPasswordEmailForm(forms.Form):
         return email
 
 
-# Step 2: OTP form
-class OTPVerifyForm(forms.Form):
-    otp = forms.CharField(max_length=6)
-
-
-# Step 3: New password form
+# Step 2: New password form
 class SetNewPasswordForm(forms.Form):
     new_password = forms.CharField(widget=forms.PasswordInput())
     confirm_password = forms.CharField(widget=forms.PasswordInput())
