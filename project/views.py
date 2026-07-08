@@ -7,19 +7,14 @@ from datetime import date, timedelta
 # Django imports
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import (
-    authenticate,
-    get_user_model,
-    login,
-    logout,
-    update_session_auth_hash,
-)
+from django.contrib.auth import (authenticate, get_user_model, login, logout,
+                                 update_session_auth_hash)
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
-
 # Third-party imports
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.viewsets import ModelViewSet
@@ -27,11 +22,12 @@ from rest_framework.viewsets import ModelViewSet
 # Local application imports
 from project.models import ContactInfo, ContactMessage, CustomUser
 from project.permissions import IsOwnerOrReadOnly
-from project.serializers import ContactSerializer, UsersModelSerializer
+from project.serializers import UsersModelSerializer
+from project.validators import validate_contact_email
 
 from .forms import ProfileForm, RegisterForm, SetNewPasswordForm
 
-# Temporary OTP store (demo purpose)
+# Temporary OTP store
 OTP_STORE = {}
 
 # Initialize logger for application logging.
@@ -122,7 +118,6 @@ def profile(request: HttpRequest) -> HttpResponse:
 
         if form.is_valid():
 
-            user.username = form.cleaned_data["username"]
             user.mobile_number = form.cleaned_data["mobile_number"]
             user.other_mobile_number = form.cleaned_data["other_mobile_number"]
             user.date_birth = form.cleaned_data["date_birth"]
@@ -190,22 +185,29 @@ def services(request: HttpRequest) -> HttpResponse:
     return render(request, "services.html")
 
 
-def contact(request: HttpRequest) -> HttpResponse:
+def contact(request):
     """Handle contact form submission and display contact info."""
     contact_info = ContactInfo.objects.first()
 
     if request.method == "POST":
-        serializer = ContactSerializer(data=request.POST)
+        name = request.POST.get("name")
+        email = request.POST.get("email")
+        message = request.POST.get("message")
 
-        if serializer.is_valid():
-            serializer.save()
-            logger.info(
-                "Contact form submitted by %s", serializer.validated_data["email"]
-            )
-            return redirect("contact")
+        try:
+            validate_contact_email(email)
+        except ValidationError as e:
+            messages.error(request, e.message)
+            return render(request, "contact.html", {"contact_info": contact_info})
 
-        for error in serializer.errors.values():
-            messages.error(request, error)
+        ContactMessage.objects.create(
+            name=name,
+            email=email,
+            message=message,
+        )
+
+        messages.success(request, "Your message has been sent successfully.")
+        return redirect("contact")  # Replace with your URL name
 
     return render(request, "contact.html", {"contact_info": contact_info})
 
@@ -247,7 +249,7 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
             "expiry": timezone.now() + timedelta(seconds=30),
         }
 
-        print("OTP:", otp)
+        logger.info("OTP generated.")
 
         send_mail(
             "Your OTP",
@@ -299,7 +301,7 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
 
             new_password = form.cleaned_data["new_password"]
 
-            user = User.objects.get(email=email)
+            user = User.objects.filter(email=email).first()
             user.set_password(new_password)
             user.save()
 
@@ -327,10 +329,3 @@ class ProjectModelViewSet(ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = UsersModelSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
-
-
-class ContactModelViewSet(ModelViewSet):
-    """API ViewSet for handling ContactMessage CRUD operations."""
-
-    queryset = ContactMessage.objects.all()
-    serializer_class = ContactSerializer

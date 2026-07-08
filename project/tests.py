@@ -78,21 +78,18 @@ class AuthenticationViewTests(TestCase):
         response = self.client.post(
             reverse("profile"),
             {
-                "username": "updateduser",
                 "mobile_number": "9999999999",
                 "other_mobile_number": "",
                 "date_birth": "2000-01-01",
                 "address": "Rajkot",
-                "current_password": "Test@123",
-                "new_password": "",
-                "confirm_password": "",
             },
         )
 
         self.assertEqual(response.status_code, 302)
 
         self.user.refresh_from_db()
-        self.assertEqual(self.user.username, "updateduser")
+        self.assertEqual(self.user.mobile_number, "9999999999")
+        self.assertEqual(self.user.address, "Rajkot")
 
     def test_logout(self):
         self.client.login(username="testuser", password="Test@123")

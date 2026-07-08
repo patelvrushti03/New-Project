@@ -64,7 +64,7 @@ cd first_project
 **Windows**
 
 ```bash
-python -m venv wrold
+python -m venv world
 ```
 
 ### 4. Activate the Virtual Environment
@@ -72,7 +72,7 @@ python -m venv wrold
 **Windows**
 
 ```bash
-wrold\Scripts\activate
+world\Scripts\activate
 ```
 
 ### 5. Install Dependencies

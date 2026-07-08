@@ -5,30 +5,11 @@ from datetime import date
 # Django imports
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
+
+from project.validators import (validate_password_format,
+                                validate_phone_number, validate_username)
 
 User = get_user_model()
-
-PHONE_REGEX = r"^\+?[0-9]{10,15}$"
-USERNAME_REGEX = r"^[a-zA-Z0-9_]{3,16}$"
-PASSWORD_REGEX = r"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{6,}$"
-
-
-def validate_username(username):
-    """Validate username."""
-    if not re.match(USERNAME_REGEX, username):
-        raise forms.ValidationError(
-            "Username must be 3 to 16 characters long and contain only letters, numbers, and underscores."
-        )
-    return username
-
-
-def validate_phone_number(phone_number):
-    """Validate phone number."""
-    if phone_number and not re.match(PHONE_REGEX, phone_number):
-        raise forms.ValidationError("Phone number must contain 10 to 15 digits.")
-
-    return phone_number
 
 
 def validate_date_birth(date_birth):
@@ -36,18 +17,6 @@ def validate_date_birth(date_birth):
     if date_birth and date_birth > date.today():
         raise forms.ValidationError("Date of birth cannot be in the future.")
     return date_birth
-
-
-def validate_password(password):
-    """Validate password."""
-    if not re.match(
-        PASSWORD_REGEX,
-        password,
-    ):
-        raise forms.ValidationError(
-            "Password must contain an uppercase letter, lowercase letter, number, and special character."
-        )
-    return password
 
 
 class RegisterForm(forms.Form):
@@ -90,13 +59,12 @@ class RegisterForm(forms.Form):
         return validate_date_birth(self.cleaned_data["date_birth"])
 
     def clean_password(self):
-        return validate_password(self.cleaned_data["password"])
+        return validate_password_format(self.cleaned_data["password"])
 
 
 class ProfileForm(forms.Form):
     """Profile update form."""
 
-    username = forms.CharField(max_length=16)
     mobile_number = forms.CharField(max_length=15)
     other_mobile_number = forms.CharField(required=False, max_length=15)
     date_birth = forms.DateField(
@@ -112,9 +80,6 @@ class ProfileForm(forms.Form):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-
-    def clean_username(self):
-        return validate_username(self.cleaned_data["username"])
 
     def clean_mobile_number(self):
         return validate_phone_number(self.cleaned_data["mobile_number"])
@@ -151,7 +116,7 @@ class ProfileForm(forms.Form):
                     "New password must be different from old password."
                 )
 
-            new_password = validate_password(new_password)
+            validate_password_format(new_password)
 
             if new_password != confirm_password:
                 raise forms.ValidationError(
@@ -180,7 +145,7 @@ class SetNewPasswordForm(forms.Form):
     def clean_new_password(self):
         password = self.cleaned_data.get("new_password")
         if password:
-            validate_password(password)
+            validate_password_format(password)
         return password
 
     def clean(self):
