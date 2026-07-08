@@ -22,11 +22,6 @@ class UsersModelSerializer(serializers.ModelSerializer):
             "owner",
         ]
 
-    def validate_username(self, value):
-        if not re.match(r"^[a-zA-Z0-9_]{3,16}$", value):
-            raise serializers.ValidationError("Invalid username format")
-        return value
-
 
 class ContactSerializer(serializers.ModelSerializer):
     class Meta:

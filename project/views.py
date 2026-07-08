@@ -71,9 +71,7 @@ def register(request: HttpRequest) -> HttpResponse:
         form = RegisterForm()
 
     return render(
-        request,
-        "register.html",
-        {"form": form, "today_date": date.today().isoformat()},
+        request, "register.html", {"form": form, "today_date": date.today().isoformat()}
     )
 
 
@@ -175,11 +173,7 @@ def profile(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "profile.html",
-        {
-            "user": user,
-            "form": form,
-            "today_date": date.today().isoformat(),
-        },
+        {"user": user, "form": form, "today_date": date.today().isoformat()},
     )
 
 
