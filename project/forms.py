@@ -1,5 +1,4 @@
 # Standard library imports
-import re
 from datetime import date
 
 # Django imports
