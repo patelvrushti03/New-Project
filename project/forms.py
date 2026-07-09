@@ -1,3 +1,4 @@
+import os
 # Standard library imports
 from datetime import date
 
@@ -72,6 +73,7 @@ class ProfileForm(forms.Form):
     )
 
     address = forms.CharField(required=False)
+    profile_image = forms.ImageField(required=False)
     old_password = forms.CharField(required=False, widget=forms.PasswordInput())
     new_password = forms.CharField(required=False, widget=forms.PasswordInput())
     confirm_password = forms.CharField(required=False, widget=forms.PasswordInput())
@@ -100,16 +102,12 @@ class ProfileForm(forms.Form):
 
             if not old_password:
                 raise forms.ValidationError("Please enter old password.")
-
             if not new_password:
                 raise forms.ValidationError("Please enter new password.")
-
             if not confirm_password:
                 raise forms.ValidationError("Please enter confirm password.")
-
             if not self.user.check_password(old_password):
                 raise forms.ValidationError("Old password is incorrect.")
-
             if new_password == old_password:
                 raise forms.ValidationError(
                     "New password must be different from old password."
@@ -123,6 +121,22 @@ class ProfileForm(forms.Form):
                 )
 
         return cleaned_data
+
+    def clean_profile_image(self):
+        profile_image = self.cleaned_data.get("profile_image")
+
+        if profile_image:
+            allowed_extensions = [".jpg", ".jpeg", ".png"]
+            extension = os.path.splitext(profile_image.name)[1].lower()
+            if extension not in allowed_extensions:
+                raise forms.ValidationError(
+                    "Only JPG, JPEG and PNG images are allowed."
+                )
+
+            if profile_image.size > 2 * 1024 * 1024:
+                raise forms.ValidationError("Image size must be less than 2 MB.")
+
+        return profile_image
 
 
 # Step 1: Email form

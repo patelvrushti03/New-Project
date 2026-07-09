@@ -89,6 +89,11 @@ class PasswordResetOTP(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     expiry = models.DateTimeField()
 
+    @classmethod
+    def cleanup_expired(cls):
+        """Delete all expired OTP records."""
+        cls.objects.filter(expiry__lt=timezone.now()).delete()
+
     def is_expired(self):
         return timezone.now() > self.expiry
 

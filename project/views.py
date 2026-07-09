@@ -55,7 +55,7 @@ def register(request: HttpRequest) -> HttpResponse:
                 address=form.cleaned_data["address"],
             )
 
-            logger.info("User registered successfully: %s", user.username)
+            messages.success(request, "User registered successfully.")
 
             return redirect("login")
 
@@ -110,13 +110,9 @@ def profile(request: HttpRequest) -> HttpResponse:
     """Display and update user profile including password change."""
     user = request.user
 
-    if not user:
-        logger.warning("Profile not found for %s", request.user.username)
-        return render(request, "profile.html", {"error": "Profile not found"})
-
     if request.method == "POST":
 
-        form = ProfileForm(request.POST, user=request.user)
+        form = ProfileForm(request.POST, request.FILES, user=request.user)
 
         if form.is_valid():
             user.mobile_number = form.cleaned_data["mobile_number"]
@@ -124,24 +120,22 @@ def profile(request: HttpRequest) -> HttpResponse:
             user.date_birth = form.cleaned_data["date_birth"]
             user.address = form.cleaned_data["address"]
 
-            if request.FILES.get("profile_image"):
-                user.profile_image = request.FILES.get("profile_image")
+            profile_image = form.cleaned_data.get("profile_image")
+            if profile_image:
+                user.profile_image = profile_image
 
             if form.cleaned_data["new_password"]:
                 request.user.set_password(
                     form.cleaned_data["new_password"],
                 )
                 request.user.save()
-
                 update_session_auth_hash(request, request.user)
-
                 logger.info(
                     "Password changed successfully for %s", request.user.username
                 )
                 messages.success(request, "Password changed successfully.")
 
             user.save()
-
             logger.info("Profile updated by %s", request.user.username)
 
             return redirect("profile")
@@ -183,11 +177,15 @@ def services(request: HttpRequest) -> HttpResponse:
     return render(request, "services.html")
 
 
-def contact(request):
+def contact(request: HttpRequest) -> HttpResponse:
     """Handle contact form submission and display contact info."""
     contact_info = ContactInfo.objects.first()
 
     if request.method == "POST":
+
+        if not request.user.is_authenticated:
+            return redirect("login")
+
         name = request.POST.get("name")
         email = request.POST.get("email")
         message = request.POST.get("message")
@@ -198,7 +196,7 @@ def contact(request):
             messages.error(request, e.message)
             return render(request, "contact.html", {"contact_info": contact_info})
 
-        if email != request.user.email:
+        if email.lower() != request.user.email.lower():
             messages.error(request, "Please enter your registered email address.")
             return render(request, "contact.html", {"contact_info": contact_info})
 
@@ -239,6 +237,8 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
             if not email:
                 messages.error(request, "Session expired. Please enter email again.")
                 return render(request, "forgot_password.html", {"step": "step1"})
+
+        PasswordResetOTP.cleanup_expired()
 
         otp = str(random.randint(100000, 999999))
 
