@@ -1,5 +1,5 @@
-import os
 # Standard library imports
+import os
 from datetime import date
 
 # Django imports
@@ -141,6 +141,8 @@ class ProfileForm(forms.Form):
 
 # Step 1: Email form
 class ForgotPasswordEmailForm(forms.Form):
+    """Forgot password email verification form."""
+
     email = forms.EmailField()
 
     def clean_email(self):
@@ -152,6 +154,8 @@ class ForgotPasswordEmailForm(forms.Form):
 
 # Step 2: New password form
 class SetNewPasswordForm(forms.Form):
+    """Set new password form."""
+
     new_password = forms.CharField(widget=forms.PasswordInput())
     confirm_password = forms.CharField(widget=forms.PasswordInput())
 

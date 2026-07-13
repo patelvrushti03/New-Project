@@ -6,26 +6,21 @@ from datetime import date, timedelta
 # Django imports
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import (
-    authenticate,
-    get_user_model,
-    login,
-    logout,
-    update_session_auth_hash,
-)
+from django.contrib.auth import (authenticate, get_user_model, login, logout,
+                                 update_session_auth_hash)
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
-
 # Third-party imports
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.viewsets import ModelViewSet
 
 # Local application imports
-from project.models import ContactInfo, ContactMessage, CustomUser, PasswordResetOTP
+from project.models import ContactInfo, ContactMessage, CustomUser
 from project.permissions import IsOwnerOrReadOnly
 from project.serializers import UsersModelSerializer
 from project.validators import validate_contact_email
@@ -37,15 +32,28 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+def show_form_errors(request, form):
+    """Display all form validation errors."""
+    for errors in form.errors.values():
+        for error in errors:
+            messages.error(request, error)
+
+
+def clear_otp(user):
+    """Clear OTP after verification/reset."""
+    user.otp = None
+    user.otp_expiry = None
+    user.save()
+
+
 def register(request: HttpRequest) -> HttpResponse:
     """Handle user registration, validation, and profile creation."""
     logger.info("Registration request received")
 
     if request.method == "POST":
         form = RegisterForm(request.POST)
-
         if form.is_valid():
-            user = User.objects.create_user(
+            User.objects.create_user(
                 username=form.cleaned_data["username"],
                 email=form.cleaned_data["email"],
                 password=form.cleaned_data["password"],
@@ -54,17 +62,11 @@ def register(request: HttpRequest) -> HttpResponse:
                 date_birth=form.cleaned_data["date_birth"],
                 address=form.cleaned_data["address"],
             )
-
             messages.success(request, "User registered successfully.")
-
             return redirect("login")
 
         logger.warning("Registration form validation failed.")
-
-        for errors in form.errors.values():
-            for error in errors:
-                messages.error(request, error)
-
+        show_form_errors(request, form)
     else:
         form = RegisterForm()
 
@@ -112,7 +114,7 @@ def profile(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
 
-        form = ProfileForm(request.POST, request.FILES, user=request.user)
+        form = ProfileForm(request.POST, request.FILES, user=user)
 
         if form.is_valid():
             user.mobile_number = form.cleaned_data["mobile_number"]
@@ -125,26 +127,18 @@ def profile(request: HttpRequest) -> HttpResponse:
                 user.profile_image = profile_image
 
             if form.cleaned_data["new_password"]:
-                request.user.set_password(
-                    form.cleaned_data["new_password"],
-                )
-                request.user.save()
-                update_session_auth_hash(request, request.user)
-                logger.info(
-                    "Password changed successfully for %s", request.user.username
-                )
+                user.set_password(form.cleaned_data["new_password"])
+                update_session_auth_hash(request, user)
+                logger.info("Password changed successfully for %s", user.username)
                 messages.success(request, "Password changed successfully.")
 
             user.save()
-            logger.info("Profile updated by %s", request.user.username)
+            logger.info("Profile updated by %s", user.username)
 
             return redirect("profile")
 
-        logger.warning("Profile form validation failed for %s", request.user.username)
-
-        for errors in form.errors.values():
-            for error in errors:
-                messages.error(request, error)
+        logger.warning("Profile form validation failed for %s", user.username)
+        show_form_errors(request, form)
     else:
         form = ProfileForm(
             initial={
@@ -154,7 +148,7 @@ def profile(request: HttpRequest) -> HttpResponse:
                 "date_birth": user.date_birth,
                 "address": user.address,
             },
-            user=request.user,
+            user=user,
         )
 
     return render(
@@ -224,32 +218,23 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
 
         if "send_otp" in request.POST:
             email = request.POST.get("email")
-
             if not User.objects.filter(email=email).exists():
                 messages.error(request, "Invalid email")
                 return render(request, "forgot_password.html", {"step": "step1"})
 
             request.session["reset_email"] = email
-
         else:
             email = request.session.get("reset_email")
-
             if not email:
                 messages.error(request, "Session expired. Please enter email again.")
                 return render(request, "forgot_password.html", {"step": "step1"})
 
-        PasswordResetOTP.cleanup_expired()
-
         otp = str(random.randint(100000, 999999))
 
-        PasswordResetOTP.objects.filter(email=email).delete()
-
-        PasswordResetOTP.objects.create(
-            email=email,
-            otp=otp,
-            expiry=timezone.now() + timedelta(seconds=60),
-        )
-
+        user = User.objects.filter(email=email).first()
+        user.otp = otp
+        user.otp_expiry = timezone.now() + timedelta(seconds=60)
+        user.save()
         try:
             send_mail(
                 "Your OTP",
@@ -278,16 +263,16 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
         email = request.session.get("reset_email")
         otp_input = request.POST.get("otp")
 
-        otp_data = PasswordResetOTP.objects.filter(email=email).first()
+        user = User.objects.filter(email=email).first()
 
-        if not otp_data:
+        if not user or not user.otp:
             step = "step2"
             messages.error(request, "OTP not found. Please resend OTP.")
-        elif otp_data.is_expired():
-            otp_data.delete()
+        elif user.is_otp_expired():
+            clear_otp(user)
             step = "step2"
             messages.error(request, "OTP has expired. Please click Resend OTP.")
-        elif otp_data.otp == otp_input:
+        elif user.otp == otp_input:
             step = "step3"
             messages.success(request, "OTP verified.")
         else:
@@ -302,22 +287,17 @@ def forgot_password(request: HttpRequest) -> HttpResponse:
         if form.is_valid():
             new_password = form.cleaned_data["new_password"]
             user = User.objects.filter(email=email).first()
-
             if user:
-                user.set_password(new_password)
-                user.save()
-
-                PasswordResetOTP.objects.filter(email=email).delete()
+                with transaction.atomic():
+                    user.set_password(new_password)
+                    clear_otp(user)
 
                 request.session.pop("reset_email", None)
                 messages.success(request, "Password reset successful.")
                 return redirect("login")
         else:
             step = "step3"
-            for errors in form.errors.values():
-                for error in errors:
-                    messages.error(request, error)
-
+            show_form_errors(request, form)
     if step == "step3":
         form = SetNewPasswordForm()
 
@@ -330,3 +310,8 @@ class ProjectModelViewSet(ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = UsersModelSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            return CustomUser.objects.filter(pk=self.request.user.pk)
+        return CustomUser.objects.none()

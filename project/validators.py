@@ -1,5 +1,7 @@
+# Standard library imports
 import re
 
+# Django imports
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 

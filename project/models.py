@@ -1,7 +1,9 @@
+# Django imports
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
 
+# Local application imports
 from .validators import validate_phone_number, validate_username
 
 
@@ -31,6 +33,12 @@ class CustomUser(AbstractUser):
     profile_image = models.ImageField(
         upload_to="profile/", default="default.png", blank=True
     )
+    otp = models.CharField(max_length=6, blank=True, null=True)
+    otp_expiry = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_otp_expired(self):
+        return self.otp_expiry is None or timezone.now() > self.otp_expiry
 
     def __str__(self):
         """Return username of the user."""
@@ -71,31 +79,3 @@ class ContactMessage(models.Model):
     def __str__(self):
         """Return name of message sender."""
         return self.name
-
-
-class PasswordResetOTP(models.Model):
-    """
-    Stores a One-Time Password (OTP) used for password reset verification.
-
-    Fields:
-        email (EmailField): Email address of the user requesting the password reset.
-        otp (CharField): Six-digit OTP sent to the user's email.
-        created_at (DateTimeField): Timestamp when the OTP record was created.
-        expiry (DateTimeField): Timestamp indicating when the OTP expires.
-    """
-
-    email = models.EmailField()
-    otp = models.CharField(max_length=6)
-    created_at = models.DateTimeField(auto_now_add=True)
-    expiry = models.DateTimeField()
-
-    @classmethod
-    def cleanup_expired(cls):
-        """Delete all expired OTP records."""
-        cls.objects.filter(expiry__lt=timezone.now()).delete()
-
-    def is_expired(self):
-        return timezone.now() > self.expiry
-
-    def __str__(self):
-        return self.email
