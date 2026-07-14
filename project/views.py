@@ -6,8 +6,13 @@ from datetime import date, timedelta
 # Django imports
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import (authenticate, get_user_model, login, logout,
-                                 update_session_auth_hash)
+from django.contrib.auth import (
+    authenticate,
+    get_user_model,
+    login,
+    logout,
+    update_session_auth_hash,
+)
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
@@ -15,6 +20,7 @@ from django.db import transaction
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+
 # Third-party imports
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.viewsets import ModelViewSet

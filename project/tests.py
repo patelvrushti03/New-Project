@@ -10,6 +10,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+
 # Third-party imports
 from PIL import Image
 from rest_framework.test import APIRequestFactory
@@ -228,6 +229,46 @@ class ProfileViewTests(BaseTestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.mobile_number, "9999999999")
         self.assertEqual(self.user.address, "Rajkot")
+
+    def test_profile_invalid_image(self):
+        self.login_user()
+
+        invalid_file = SimpleUploadedFile(
+            "fake.jpg", b"This is not a real image", content_type="image/jpeg"
+        )
+
+        response = self.client.post(
+            reverse("profile"),
+            self.profile_data(profile_image=invalid_file),
+            follow=True,
+        )
+        print(response.context["form"].errors)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"],
+            "profile_image",
+            "Upload a valid image. The file you uploaded was either not an image or a corrupted image.",
+        )
+
+    def test_profile_invalid_image_format(self):
+        self.login_user()
+
+        image = BytesIO()
+        Image.new("RGB", (100, 100), color="red").save(image, format="GIF")
+        image.seek(0)
+        gif_file = SimpleUploadedFile(
+            "test.gif",
+            image.read(),
+            content_type="image/gif",
+        )
+        response = self.client.post(
+            reverse("profile"),
+            self.profile_data(profile_image=gif_file),
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assert_message(response, "Only JPG and PNG images are allowed.")
 
     def test_profile_change_password(self):
         self.login_user()
@@ -468,27 +509,18 @@ class ForgotPasswordViewTests(BaseTestCase):
         self.assertEqual(response.status_code, 200)
 
 
-class ProjectViewSetTests(TestCase):
+class ProjectViewSetTests(BaseTestCase):
     """Tests for ProjectModelViewSet."""
 
     def setUp(self):
+        super().setUp()
         self.factory = APIRequestFactory()
-
-        self.user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="Test@123",
-            mobile_number="9876543210",
-            other_mobile_number="9876543211",
-            address="Ahmedabad",
-        )
 
     def test_authenticated_queryset(self):
         request = self.factory.get("/users/")
         request.user = self.user
 
         view = self.get_view(request)
-
         queryset = view.get_queryset()
 
         self.assertEqual(queryset.count(), 1)
@@ -499,7 +531,6 @@ class ProjectViewSetTests(TestCase):
         request.user = AnonymousUser()
 
         view = self.get_view(request)
-
         queryset = view.get_queryset()
 
         self.assertEqual(queryset.count(), 0)

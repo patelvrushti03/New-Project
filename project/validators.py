@@ -1,7 +1,9 @@
 # Standard library imports
 import re
+from datetime import date
 
 # Django imports
+from django import forms
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 
@@ -42,3 +44,10 @@ def validate_contact_email(email):
     except ValidationError:
         raise ValidationError("Please enter a valid email address.")
     return email
+
+
+def validate_date_birth(date_birth):
+    """Validate date of birth."""
+    if date_birth and date_birth > date.today():
+        raise forms.ValidationError("Date of birth cannot be in the future.")
+    return date_birth

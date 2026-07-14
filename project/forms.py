@@ -1,22 +1,19 @@
 # Standard library imports
-import os
 from datetime import date
 
 # Django imports
 from django import forms
 from django.contrib.auth import get_user_model
+from PIL import Image
 
-from project.validators import (validate_password_format,
-                                validate_phone_number, validate_username)
+from project.validators import (
+    validate_password_format,
+    validate_phone_number,
+    validate_username,
+    validate_date_birth,
+)
 
 User = get_user_model()
-
-
-def validate_date_birth(date_birth):
-    """Validate date of birth."""
-    if date_birth and date_birth > date.today():
-        raise forms.ValidationError("Date of birth cannot be in the future.")
-    return date_birth
 
 
 class RegisterForm(forms.Form):
@@ -126,15 +123,18 @@ class ProfileForm(forms.Form):
         profile_image = self.cleaned_data.get("profile_image")
 
         if profile_image:
-            allowed_extensions = [".jpg", ".jpeg", ".png"]
-            extension = os.path.splitext(profile_image.name)[1].lower()
-            if extension not in allowed_extensions:
-                raise forms.ValidationError(
-                    "Only JPG, JPEG and PNG images are allowed."
-                )
-
             if profile_image.size > 2 * 1024 * 1024:
                 raise forms.ValidationError("Image size must be less than 2 MB.")
+            try:
+                image = Image.open(profile_image)
+                image.verify()
+                profile_image.seek(0)
+                image = Image.open(profile_image)
+
+            except Exception:
+                raise forms.ValidationError("Please upload a valid image file.")
+            if image.format not in ["JPEG", "PNG"]:
+                raise forms.ValidationError("Only JPG and PNG images are allowed.")
 
         return profile_image
 
