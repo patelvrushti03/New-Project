@@ -95,27 +95,26 @@ class ProfileForm(forms.Form):
         new_password = cleaned_data.get("new_password")
         confirm_password = cleaned_data.get("confirm_password")
 
-        if old_password or new_password or confirm_password:
+        if not (old_password or new_password or confirm_password):
+            return cleaned_data
+        if not old_password:
+            raise forms.ValidationError("Please enter old password.")
+        if not new_password:
+            raise forms.ValidationError("Please enter new password.")
+        if not confirm_password:
+            raise forms.ValidationError("Please enter confirm password.")
+        if not self.user.check_password(old_password):
+            raise forms.ValidationError("Old password is incorrect.")
+        validate_password_format(new_password)
+        if new_password == old_password:
+            raise forms.ValidationError(
+                "New password must be different from old password."
+            )
 
-            if not old_password:
-                raise forms.ValidationError("Please enter old password.")
-            if not new_password:
-                raise forms.ValidationError("Please enter new password.")
-            if not confirm_password:
-                raise forms.ValidationError("Please enter confirm password.")
-            if not self.user.check_password(old_password):
-                raise forms.ValidationError("Old password is incorrect.")
-            if new_password == old_password:
-                raise forms.ValidationError(
-                    "New password must be different from old password."
-                )
-
-            validate_password_format(new_password)
-
-            if new_password != confirm_password:
-                raise forms.ValidationError(
-                    "New password and confirm password do not match."
-                )
+        if new_password != confirm_password:
+            raise forms.ValidationError(
+                "New password and confirm password do not match."
+            )
 
         return cleaned_data
 

@@ -177,14 +177,12 @@ def services(request: HttpRequest) -> HttpResponse:
     return render(request, "services.html")
 
 
+@login_required(login_url="login")
 def contact(request: HttpRequest) -> HttpResponse:
     """Handle contact form submission and display contact info."""
     contact_info = ContactInfo.objects.first()
 
     if request.method == "POST":
-
-        if not request.user.is_authenticated:
-            return redirect("login")
 
         name = request.POST.get("name")
         email = request.POST.get("email")

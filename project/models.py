@@ -19,9 +19,6 @@ class CustomUser(AbstractUser):
         profile_image (ImageField): Profile image of user.
     """
 
-    username = models.CharField(
-        max_length=16, unique=True, validators=[validate_username]
-    )
     mobile_number = models.CharField(
         max_length=15, null=True, blank=True, validators=[validate_phone_number]
     )

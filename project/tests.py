@@ -346,6 +346,7 @@ class ContactViewTests(BaseTestCase):
         self.assert_message(response, "Please enter your registered email address.")
 
     def test_contact_get(self):
+        self.login_user()
         response = self.client.get(reverse("contact"))
         self.assertEqual(response.status_code, 200)
 
@@ -355,7 +356,7 @@ class ContactViewTests(BaseTestCase):
             {"name": "Test", "email": "test@example.com", "message": "Hello"},
         )
 
-        self.assertRedirects(response, reverse("login"))
+        self.assertRedirects(response, f"{reverse('login')}?next={reverse('contact')}")
 
 
 class ForgotPasswordViewTests(BaseTestCase):

@@ -11,12 +11,7 @@ This is a Django-based web application developed to learn user authentication, p
 - User Logout
 - Dashboard
 - Profile Management
-- Update Username
-- Update Mobile Number
-- Update Alternate Mobile Number
-- Update Date of Birth
-- Update Address
-- Upload Profile Image
+- Update Profile
 - Change Password
 - Forgot Password
 - Contact Form
