@@ -1,0 +1,37 @@
+{% extends "master.html" %}
+
+
+{% block title %}
+Contact
+{% endblock %}
+
+{% block content %}
+<section class="contact-section">
+    <h1>Contact Us</h1>
+    <div class="contact-container">
+        <!-- LEFT -->
+         <div class="contact-info">
+            <h2>Get In Touch</h2>
+            <p>Email: {{ contact_info.email }}</p>
+            <p>Phone: {{ contact_info.phone_number }}</p>
+            <p>Location: {{ contact_info.location }}</p>
+        </div>
+        <!-- RIGHT -->
+        <div class="contact-form">
+            <form method="POST">
+                {% csrf_token %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <p class="error">{{ message }}</p>
+                    {% endfor %}
+                {% endif %}   
+                <input type="text" name="name" placeholder="Enter Your Name" required>
+                <input type="email" name="email" placeholder="Enter Your Email" required>
+                <textarea name="message" placeholder="Enter Your Message" required></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "master.html" %}
+
+{% block title %}
+    Profile
+{% endblock %}
+
+{% block content %}
+
+<div class="profile-box">
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="profile-image">
+
+            {% if user.profile_image %}
+                <img src="{{ user.profile_image.url }}" alt="Profile">
+            {% else %}
+                <img src="/media/default.png" alt="Profile">
+            {% endif %}
+
+            <label for="file-input" class="edit-icon">✏️</label>
+            <input type="file" id="file-input" name="profile_image">
+
+        </div>
+
+        <h2>Profile</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <p class="error">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+
+        <label>Username</label>
+        <input type="text" value="{{ user.username }}" disabled>
+
+        <label>Email</label>
+        <input type="text" value="{{ user.email }}" disabled>
+
+        <label>Mobile Number</label>
+        {{ form.mobile_number }}
+
+        <label>Other Number</label>
+        {{ form.other_mobile_number }}
+
+        <label>Date Of Birth</label>
+        {{ form.date_birth }}
+
+        <label>Address</label>
+        {{ form.address }}
+
+        <label>Old Password</label>
+        <input type="password" name="old_password">
+
+        <label>New Password</label>
+        <input type="password" name="new_password">
+
+        <label>Confirm Password</label>
+        <input type="password" name="confirm_password">
+
+        <button type="submit">
+            Update Profile
+        </button>
+
+    </form>
+
+</div>
+
+{% endblock %}

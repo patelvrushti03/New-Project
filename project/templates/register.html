@@ -1,0 +1,43 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+
+<body class="register-body">
+    <div class="register-container">
+        <h2>Register</h2>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            {% if messages %}
+                {% for message in messages %}
+                    <p class="error">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+
+            <label>Username</label>
+            {{ form.username }}
+            <label>Email</label>
+            {{ form.email }}
+            <label>Mobile Number</label>
+            {{ form.mobile_number }}
+            <label>Other Mobile Number</label>
+            {{ form.other_mobile_number }}
+            <label>Date of Birth</label>
+            {{ form.date_birth }}
+            <label>Address</label>
+            {{ form.address }}
+            <label>Password</label>
+            {{ form.password }}
+
+            <button type="submit">Register</button>
+        </form>
+    </div>
+
+</body>
+</html>
